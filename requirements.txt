@@ -1,0 +1,12 @@
+zmq
+argparse
+json
+numpy
+scipy
+matplotlib
+cvxpy
+typing
+dataclasses
+__future__
+pathlib
+subprocess

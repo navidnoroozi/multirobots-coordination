@@ -54,3 +54,5 @@ instance/
 # Plot outputs and performance metrics (generated dynamically)
 *.csv
 *.png
+*.jpg
+*./figures_png/

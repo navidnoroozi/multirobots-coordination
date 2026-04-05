@@ -100,7 +100,7 @@ class NetConfig:
 
     # --- Objective ---
     objective_mode: Literal["consensus", "safe_formation"] = "safe_formation"
-    d_safe: float = 0.90
+    d_safe: float = 1.10
     formation_margin: float = 0.15
     formation_rotation_rad: float = (
         0.0  # rotation of the formation in radians, applied to the formation offsets
@@ -122,8 +122,12 @@ class NetConfig:
     )
 
     # mode hysteresis thresholds
-    d_agent_enter: float = 1.15
-    d_agent_exit: float = 1.45
+    # Threshold–formation compatibility (Assumption in Section IX-H):
+    #   d_agent_exit < min_{i≠k} ||c_i - c_k||
+    # With corrected offsets and n=4, min dist = d_safe + formation_margin = 1.05,
+    # so d_agent_exit must be < 1.05.
+    d_agent_enter: float = 0.95
+    d_agent_exit: float = 1.00
     d_obs_enter: float = 0.45
     d_obs_exit: float = 0.85
 
@@ -294,7 +298,7 @@ class NetConfig:
             return np.zeros((n, d), dtype=float)
 
         denom = 2.0 * np.sin(np.pi / float(n))
-        auto_radius = 0.5 * (self.d_safe + self.formation_margin) / max(denom, 1e-9)
+        auto_radius = (self.d_safe + self.formation_margin) / max(denom, 1e-9)
         radius = max(auto_radius, float(self.formation_radius_override))
 
         angles = self.formation_rotation_rad + 2.0 * np.pi * np.arange(n) / float(n)

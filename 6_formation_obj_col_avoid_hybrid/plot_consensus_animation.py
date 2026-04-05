@@ -247,6 +247,7 @@ def main() -> None:
     ax.set_xlabel(r"$x$")
     ax.set_ylabel(r"$y$")
     ax.set_aspect("equal", adjustable="box")
+    ax.set_axisbelow(True)
     ax.grid(True)
 
     if cfg.obstacles_enabled:
@@ -688,16 +689,17 @@ def main() -> None:
         gif_fps = max(0.2, float(args.gif_fps_base) * float(args.gif_speed))
         step = max(1, int(args.gif_step))
 
-        # Clean export-only appearance: no UI widgets, no axis labels, no tick labels, no title clutter.
+        # Clean export-only appearance: no UI widgets, no tick labels, no title clutter.
+        # Keep tick locations so the grid has positions to render against in the GIF.
         ax.set_xlim(xmin, xmax)
         ax.set_ylim(ymin, ymax)
         ax.set_xlabel(r"$x$")
         ax.set_ylabel(r"$y$")
         ax.set_aspect("equal", adjustable="box")
+        ax.set_axisbelow(True)
         ax.grid(True)
         ax.set_title("")
-        ax.set_xticks([])
-        ax.set_yticks([])
+        ax.tick_params(axis="both", which="both", labelbottom=False, labelleft=False)
         ax_sm.set_title("")
 
         overlay_text.set_fontsize(10)

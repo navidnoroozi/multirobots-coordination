@@ -291,12 +291,22 @@ def _solve_single_integrator(
     r_i: np.ndarray,
     r_neighbors: List[np.ndarray],
     u_prev: np.ndarray,
+    neighbor_ids: List[int] = None,
 ) -> Tuple[Dict[str, Any], bool]:
     """
     Condensed single-integrator MPC:
       r(k+1) = r(k) + u(k)
     Decision variables: u(0..M-1), a (terminal convex weights), (optional tmin in lex).
     Predicted states r(k) are affine expressions of u.
+
+    When cfg.objective_mode == "safe_formation", the OCP is posed in
+    shape-compensated coordinates y_i = r_i - c_i  (Section VIII of the
+    manuscript).  The terminal hull constraint becomes
+        r(M) - c_i  in  conv({y_i} ∪ {y_k : k in N_i})
+    and the tracking target becomes the formation barycenter
+        z_bar_i^c = mean_y + c_i.
+    The control sequence u is identical in both coordinate systems
+    because c_i is constant.
     """
     import time
     import cvxpy as cp
@@ -305,12 +315,31 @@ def _solve_single_integrator(
     M = cfg.horizon_M()
     d = cfg.dim
 
-    S = [r_i] + list(r_neighbors)
-    m = len(S)
-    S_mat = np.stack(S, axis=0)  # (m,d)
+    # --- Formation coordinate transformation (Section VIII) -----------
+    use_formation = (cfg.objective_mode == "safe_formation"
+                     and neighbor_ids is not None
+                     and len(neighbor_ids) == len(r_neighbors))
+    if use_formation:
+        offsets = cfg.formation_offsets()
+        c_i = offsets[agent_id - 1]
+        c_nbrs = [offsets[k - 1] for k in neighbor_ids]
+        # Transformed coordinates y = r - c
+        y_i = r_i - c_i
+        y_neighbors = [r_k - c_k for r_k, c_k in zip(r_neighbors, c_nbrs)]
+        # Hull is built in y-coordinates
+        S = [y_i] + y_neighbors
+        S_mat = np.stack(S, axis=0)  # (m, d)  -- y-coords
+        bary_y = np.mean(S_mat, axis=0)
+        # Formation barycenter in original coordinates (Eq. 34)
+        bary_target = bary_y + c_i
+    else:
+        c_i = np.zeros(d, dtype=float)
+        S = [r_i] + list(r_neighbors)
+        S_mat = np.stack(S, axis=0)  # (m, d)  -- raw coords
+        bary_target = np.mean(S_mat, axis=0)
 
-    bary = np.mean(S_mat, axis=0)
-    rhs0 = float(np.linalg.norm(r_i - bary))
+    m = S_mat.shape[0]
+    rhs0 = float(np.linalg.norm(r_i - bary_target))
     rhs = cfg.alpha_gamma * rhs0
 
     # Decision variables
@@ -334,14 +363,17 @@ def _solve_single_integrator(
     cons += _clamp_box(r_expr[M], cfg.r_min, cfg.r_max)
 
     # Terminal convex hull constraint
+    # In formation mode: r(M) - c_i must be in conv(S_mat) where S_mat
+    # holds y-coordinates.  Equivalently: r(M) = c_i + a @ S_mat.
+    # In consensus mode: c_i == 0, so this reduces to r(M) = a @ S_mat.
     cons += [a >= 0.0, cp.sum(a) == 1.0]
-    cons += [r_expr[M] == a @ S_mat]
-    cons += [cp.norm(r_expr[M] - bary, 2) <= rhs]
+    cons += [r_expr[M] == cp.Constant(c_i) + a @ S_mat]
+    cons += [cp.norm(r_expr[M] - bary_target, 2) <= rhs]
 
-    # Primary cost
+    # Primary cost -- track formation barycenter (or consensus barycenter)
     J = 0
     for k in range(M):
-        J += cfg.w_track * cp.sum_squares(r_expr[k] - bary)
+        J += cfg.w_track * cp.sum_squares(r_expr[k] - bary_target)
         J += cfg.w_u * cp.sum_squares(u[k, :])
         if k == 0:
             J += cfg.w_du * cp.sum_squares(u[k, :] - u_prev)
@@ -375,9 +407,14 @@ def _solve_single_integrator(
     for k in range(M):
         r_sol[k + 1, :] = r_sol[k, :] + u_sol[k, :]
 
-    # compute phi from primary
+    # compute phi from primary -- in formation mode, phi must be
+    # evaluated in the *transformed* hull (y-coordinates)
     r_term_primary = r_sol[M, :].copy()
-    phi_primary = _phi_dist_to_boundary_conv2d(S_mat, r_term_primary) if cfg.dim == 2 else 0.0
+    if use_formation:
+        r_term_primary_y = r_term_primary - c_i
+        phi_primary = _phi_dist_to_boundary_conv2d(S_mat, r_term_primary_y) if cfg.dim == 2 else 0.0
+    else:
+        phi_primary = _phi_dist_to_boundary_conv2d(S_mat, r_term_primary) if cfg.dim == 2 else 0.0
     ri_primary = phi_primary > cfg.phi_tol
 
     diam_C = _diameter(S_mat)
@@ -421,7 +458,11 @@ def _solve_single_integrator(
                 r_sol[k + 1, :] = r_sol[k, :] + u_sol[k, :]
 
     r_term = r_sol[M, :].copy()
-    phi = _phi_dist_to_boundary_conv2d(S_mat, r_term) if cfg.dim == 2 else 0.0
+    if use_formation:
+        r_term_y = r_term - c_i
+        phi = _phi_dist_to_boundary_conv2d(S_mat, r_term_y) if cfg.dim == 2 else 0.0
+    else:
+        phi = _phi_dist_to_boundary_conv2d(S_mat, r_term) if cfg.dim == 2 else 0.0
     ri_flag = phi > cfg.phi_tol
 
     out = {
@@ -429,7 +470,7 @@ def _solve_single_integrator(
         "agent_id": int(agent_id),
         "model": cfg.model,
         "M": int(M),
-        "bary_r": bary.tolist(),
+        "bary_r": bary_target.tolist(),
         "r_pred": r_sol.tolist(),
         "u_seq": u_sol.tolist(),
         "a_weights": a_sol.tolist(),
@@ -613,6 +654,7 @@ def _solve_double_integrator(
     v_i: np.ndarray,
     r_neighbors: List[np.ndarray],
     u_prev: np.ndarray,
+    neighbor_ids: List[int] = None,
 ) -> Tuple[Dict[str, Any], bool]:
     """
     Condensed double-integrator MPC:
@@ -620,6 +662,13 @@ def _solve_double_integrator(
         v(k+1) = v(k) + u(k)
     Decision variables: u(0..M-1), a (terminal convex weights), (optional tmin in lex).
     Predicted states v(k), r(k) are affine expressions of u.
+
+    When cfg.objective_mode == "safe_formation", the OCP is posed in
+    shape-compensated coordinates y_i = r_i - c_i  (Section VIII).
+    The terminal hull constraint becomes
+        r(M) - c_i  in  conv({y_i} ∪ {y_k : k in N_i})
+    and the tracking target becomes the formation barycenter
+        z_bar_i^c = mean_y + c_i.
     """
     import time
     import cvxpy as cp
@@ -628,12 +677,27 @@ def _solve_double_integrator(
     M = cfg.horizon_M()
     d = cfg.dim
 
-    # Local hull data in position space (Corollary 3 uses position diameter)
-    Rset = [r_i] + list(r_neighbors)
-    m = len(Rset)
-    R_mat = np.stack(Rset, axis=0)  # (m,d)
+    # --- Formation coordinate transformation (Section VIII) -----------
+    use_formation = (cfg.objective_mode == "safe_formation"
+                     and neighbor_ids is not None
+                     and len(neighbor_ids) == len(r_neighbors))
+    if use_formation:
+        offsets = cfg.formation_offsets()
+        c_i = offsets[agent_id - 1]
+        c_nbrs = [offsets[k - 1] for k in neighbor_ids]
+        y_i = r_i - c_i
+        y_neighbors = [r_k - c_k for r_k, c_k in zip(r_neighbors, c_nbrs)]
+        Rset = [y_i] + y_neighbors
+        R_mat = np.stack(Rset, axis=0)  # (m, d) -- y-coords
+        bary_y = np.mean(R_mat, axis=0)
+        bary_r = bary_y + c_i  # formation barycenter in original coords
+    else:
+        c_i = np.zeros(d, dtype=float)
+        Rset = [r_i] + list(r_neighbors)
+        R_mat = np.stack(Rset, axis=0)
+        bary_r = np.mean(R_mat, axis=0)
 
-    bary_r = np.mean(R_mat, axis=0)
+    m = R_mat.shape[0]
     rhs0 = float(np.linalg.norm(r_i - bary_r))
     rhs = cfg.alpha_gamma * rhs0
 
@@ -669,8 +733,10 @@ def _solve_double_integrator(
     cons += _clamp_box(v_expr[M], cfg.v_min, cfg.v_max)
 
     # Terminal convex hull constraint in position
+    # Formation mode: r(M) - c_i in conv(R_mat), i.e. r(M) = c_i + a @ R_mat
+    # Consensus mode:  c_i == 0, reduces to r(M) = a @ R_mat
     cons += [a >= 0.0, cp.sum(a) == 1.0]
-    cons += [r_expr[M] == a @ R_mat]
+    cons += [r_expr[M] == cp.Constant(c_i) + a @ R_mat]
     cons += [cp.norm(r_expr[M] - bary_r, 2) <= rhs]
 
     # Primary cost: track bary in position + regularize v + smooth u
@@ -715,8 +781,13 @@ def _solve_double_integrator(
         r_sol[k + 1, :] = r_sol[k, :] + v_sol[k, :]
 
     # compute phi from primary terminal point in position hull
+    # In formation mode, phi is evaluated in the transformed hull
     r_term_primary = r_sol[M, :].copy()
-    phi_primary = _phi_dist_to_boundary_conv2d(R_mat, r_term_primary) if cfg.dim == 2 else 0.0
+    if use_formation:
+        r_term_primary_y = r_term_primary - c_i
+        phi_primary = _phi_dist_to_boundary_conv2d(R_mat, r_term_primary_y) if cfg.dim == 2 else 0.0
+    else:
+        phi_primary = _phi_dist_to_boundary_conv2d(R_mat, r_term_primary) if cfg.dim == 2 else 0.0
     ri_primary = phi_primary > cfg.phi_tol
 
     diam_C = _diameter(R_mat)
@@ -762,7 +833,11 @@ def _solve_double_integrator(
                 r_sol[k + 1, :] = r_sol[k, :] + v_sol[k, :]
 
     r_term = r_sol[M, :].copy()
-    phi = _phi_dist_to_boundary_conv2d(R_mat, r_term) if cfg.dim == 2 else 0.0
+    if use_formation:
+        r_term_y = r_term - c_i
+        phi = _phi_dist_to_boundary_conv2d(R_mat, r_term_y) if cfg.dim == 2 else 0.0
+    else:
+        phi = _phi_dist_to_boundary_conv2d(R_mat, r_term) if cfg.dim == 2 else 0.0
     ri_flag = phi > cfg.phi_tol
 
     out = {
@@ -814,10 +889,13 @@ def solve_mpc_request(cfg: NetConfig, payload: Dict[str, Any]) -> Tuple[Dict[str
     v_i = np.array(payload.get("v_i", np.zeros((cfg.dim,), dtype=float)), dtype=float)
     r_neighbors = [np.array(x, dtype=float) for x in payload.get("r_neighbors", [])]
     u_prev = np.array(payload.get("u_prev", np.zeros((cfg.dim,), dtype=float)), dtype=float)
+    neighbor_ids = [int(k) for k in payload.get("neighbors", [])]
 
     if cfg.model == "single_integrator":
-        return _solve_single_integrator(cfg, agent_id, r_i, r_neighbors, u_prev)
-    return _solve_double_integrator(cfg, agent_id, r_i, v_i, r_neighbors, u_prev)
+        return _solve_single_integrator(cfg, agent_id, r_i, r_neighbors, u_prev,
+                                        neighbor_ids=neighbor_ids)
+    return _solve_double_integrator(cfg, agent_id, r_i, v_i, r_neighbors, u_prev,
+                                    neighbor_ids=neighbor_ids)
 
 
 def main() -> None:
@@ -849,14 +927,17 @@ def main() -> None:
         p = msg["payload"]
         u_prev = np.array(p["u_prev"], dtype=float)
         r_neighbors = [np.array(v, dtype=float) for v in p["r_neighbors"]]
+        neighbor_ids = [int(k) for k in p.get("neighbors", [])]
 
         if cfg.model == "single_integrator":
             r_i = np.array(p["r_i"], dtype=float)
-            out, ok = _solve_single_integrator(cfg, agent_id, r_i, r_neighbors, u_prev)
+            out, ok = _solve_single_integrator(cfg, agent_id, r_i, r_neighbors, u_prev,
+                                               neighbor_ids=neighbor_ids)
         else:
             r_i = np.array(p["r_i"], dtype=float)
             v_i = np.array(p["v_i"], dtype=float)
-            out, ok = _solve_double_integrator(cfg, agent_id, r_i, v_i, r_neighbors, u_prev)
+            out, ok = _solve_double_integrator(cfg, agent_id, r_i, v_i, r_neighbors, u_prev,
+                                              neighbor_ids=neighbor_ids)
 
         if not ok:
             sock.send(

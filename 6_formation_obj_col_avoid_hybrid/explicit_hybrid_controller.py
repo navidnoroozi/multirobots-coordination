@@ -91,10 +91,15 @@ class ExplicitHybridController:
         ]
 
     def _formation_target(self, bary_r: np.ndarray) -> np.ndarray:
-        if self.cfg.objective_mode != "safe_formation":
-            return np.array(bary_r, dtype=float)
-        offsets = self.cfg.formation_offsets()
-        return np.array(bary_r + offsets[self.idx], dtype=float)
+        """Return the per-agent target position.
+
+        After the Section-VIII coordinate-transformation fix in
+        consensus_controller.py, the MPC already returns the correct
+        formation reference  z_bar_i^c = bar_y_i + c_i  as ``bary_r``
+        in formation mode, and the plain consensus barycenter in
+        consensus mode.  So we simply pass it through.
+        """
+        return np.array(bary_r, dtype=float)
 
     def _pairwise_distances(self, r_all: np.ndarray, v_all: np.ndarray) -> List[Dict[str, Any]]:
         ri = r_all[self.idx]

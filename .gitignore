@@ -56,3 +56,4 @@ instance/
 *.png
 *.jpg
 *./figures_png/
+*.gif

@@ -12,7 +12,7 @@ from matplotlib.animation import FuncAnimation, PillowWriter
 from matplotlib.widgets import Button, Slider
 from matplotlib.patches import Circle, FancyArrowPatch, RegularPolygon
 
-from consensus_config import NetConfig
+from consensus_config import NetConfig 
 
 
 def parse_args() -> argparse.Namespace:

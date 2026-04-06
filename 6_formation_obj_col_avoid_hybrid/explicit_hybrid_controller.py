@@ -373,8 +373,9 @@ class ExplicitHybridController:
         v_all: np.ndarray,
         pair_data: List[Dict[str, Any]],
         obstacle_data: List[Dict[str, Any]],
+        dt_inner: float
     ) -> bool:
-        dt = float(self.cfg.dt)
+        dt = dt_inner
         if self.cfg.model == "single_integrator":
             r_i_next = r_all[self.idx] + dt * u
             v_i_next = np.zeros_like(v_all[self.idx])
@@ -411,6 +412,7 @@ class ExplicitHybridController:
         pair_data: List[Dict[str, Any]],
         obstacle_data: List[Dict[str, Any]],
         desired_mode: str,
+        dt_inner: float,
     ) -> tuple[np.ndarray, int, int]:
         """
         Iterative projection safety filter.
@@ -419,7 +421,7 @@ class ExplicitHybridController:
         acceleration over the first step and constant velocity afterwards. 
         This is not a theorem-level proof device; it is a practical simulation safeguard.
         """
-        dt = float(self.cfg.dt)
+        dt = dt_inner
         u = self._clip(np.array(u_ref, dtype=float), self.cfg.u_min, self.cfg.u_max)
         pair_count = 0
         obs_count = 0
@@ -545,6 +547,8 @@ class ExplicitHybridController:
         v_all = np.array(payload["v_all"], dtype=float)
         u_nom = np.array(payload["u_nom"], dtype=float)
         bary_r = np.array(payload["bary_r"], dtype=float)
+        # Extract the exact inner step size for local safety projections
+        dt_inner = float(payload.get("dt_inner", self.cfg.dt / self.cfg.horizon_M()))
 
         pair_data = self._pairwise_distances(r_all, v_all)
         obstacle_data = self._obstacle_distances(r_all[self.idx], v_all[self.idx])
@@ -567,12 +571,12 @@ class ExplicitHybridController:
             obstacle_data,
         )
         u_safe, h_pair_num, circle_barrier_num = self._qp_filter(
-            u_ref, r_all, v_all, pair_data, obstacle_data, desired_mode=desired
+            u_ref, r_all, v_all, pair_data, obstacle_data, desired_mode=desired, dt_inner=dt_inner
         )
 
-        if not self._check_admissible(u_safe, r_all, v_all, pair_data, obstacle_data):
+        if not self._check_admissible(u_safe, r_all, v_all, pair_data, obstacle_data, dt_inner=dt_inner):
             u_safe = self._emergency_fallback(r_all, v_all, pair_data, obstacle_data, bary_r)
-            u_safe, _, _ = self._qp_filter(u_safe, r_all, v_all, pair_data, obstacle_data, desired_mode=MODE_CO)
+            u_safe, _, _ = self._qp_filter(u_safe, r_all, v_all, pair_data, obstacle_data, desired_mode=MODE_CO, dt_inner=dt_inner)
 
         # Commit to the desired mode after control computation.
         self.mode = desired

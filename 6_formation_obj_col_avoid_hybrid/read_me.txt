@@ -1,4 +1,22 @@
+OPTION 1:
+🤖 PLANNING (Python) <MATLAB API Engive for Python> MOTOIN-CONTROL (MATLAB/Simulink):
+Plannaining Layer: 
+  - Formation+Obstacle Avoidance+Collision Avoidance
+Motion-Control:
+  - Unicycle Model + PI Controller
+
 HOW TO RUN:
+
+  - Planning+Motion-Coontrol
+python cosim_experiment_runner.py --n-agents 4 --model single_integrator --outer-steps 500 --cosim-mode matlab
+
+  - Planning
+python cosim_experiment_runner.py --n-agents 4 --model single_integrator --outer-steps 500 --cosim-mode dry-run
+
+
+
+OPTION 2 - ONLY PYTHON:
+HOW TO RUN THE PYTHON ENVIROMENT:
 
 ▶️single_integrator (SI) case:
 python experiment_runner.py --n-agents 4 --model single_integrator --outer-steps 30 --use-lexicographic true --safety-enabled true --obstacles-enabled true

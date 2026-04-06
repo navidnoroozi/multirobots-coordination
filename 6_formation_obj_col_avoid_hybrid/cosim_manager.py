@@ -1,40 +1,5 @@
 """cosim_manager.py
 Co-simulation manager: replaces ``plant_node.py`` in the experiment pipeline.
-
-What it does
-------------
-1. Acts as the ZMQ *plant* node – sends ``plant_step`` to the coordinator and
-   receives nominal MPC sequences exactly as ``plant_node.py`` does.
-2. Invokes ``ExplicitHybridController`` (via controller_node ZMQ or inline) to
-   produce the safe control input for each inner step.
-3. Forwards the safe inputs to ``MatlabBridge.step()`` which runs the Simulink
-   unicycle model for ``simulink_dt`` seconds and returns odometry.
-4. Uses the Simulink odometry positions to update the agent state fed back into
-   the planning layer (closes the loop between the two layers).
-5. Logs everything through ``CoSimLogger``.
-
-Integration modes
------------------
-``--cosim-mode matlab``  (default)
-    Full co-simulation: MATLAB engine is started, Simulink model is loaded,
-    odometry positions are used as feedback.
-
-``--cosim-mode dry-run``
-    MATLAB is never started.  The manager runs the full Python planning loop
-    and logs planning-layer data, but returns dummy (zero) odometry.  Useful
-    for verifying the planning layer in isolation.
-
-Running
--------
-Launch via ``experiment_runner.py`` (it starts coordinator, controllers, then
-this manager instead of plant_node.py):
-
-    python experiment_runner.py --cosim-mode matlab
-
-Or standalone (the coordinator + controllers must already be running):
-
-    python cosim_manager.py --n-agents 4 --model single_integrator \
-        --outer-steps 18 --cosim-mode matlab
 """
 from __future__ import annotations
 
@@ -59,7 +24,6 @@ logging.basicConfig(
 )
 log = logging.getLogger("CosimManager")
 
-
 # ---------------------------------------------------------------------------
 # Argument parsing
 # ---------------------------------------------------------------------------
@@ -75,7 +39,7 @@ def _add_cosim_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
         "--simulink-dt",
         type=float,
         default=None,
-        help="Simulink fixed step size in seconds (default: 0.01).",
+        help="Simulink fixed step size in seconds.",
     )
     parser.add_argument(
         "--k-heading",
@@ -85,14 +49,12 @@ def _add_cosim_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     )
     return parser
 
-
 # ---------------------------------------------------------------------------
-# State update helpers (mirror plant_node.py)
+# State update helpers
 # ---------------------------------------------------------------------------
 
 def _clip(x: np.ndarray, lo: float, hi: float) -> np.ndarray:
     return np.minimum(np.maximum(x, lo), hi)
-
 
 def _pairwise_diameter(X: np.ndarray) -> float:
     if X.ndim != 2 or X.shape[0] <= 1:
@@ -103,7 +65,6 @@ def _pairwise_diameter(X: np.ndarray) -> float:
             dmax = max(dmax, float(np.linalg.norm(X[i] - X[k])))
     return dmax
 
-
 def _pairwise_min_dist(X: np.ndarray) -> float:
     if X.ndim != 2 or X.shape[0] <= 1:
         return float("inf")
@@ -112,7 +73,6 @@ def _pairwise_min_dist(X: np.ndarray) -> float:
         for k in range(i + 1, X.shape[0]):
             dmin = min(dmin, float(np.linalg.norm(X[i] - X[k])))
     return dmin
-
 
 def _global_obs_dist(cfg: NetConfig, r: np.ndarray) -> float:
     if not cfg.obstacles_enabled or len(cfg.obstacles_circles) == 0:
@@ -127,7 +87,6 @@ def _global_obs_dist(cfg: NetConfig, r: np.ndarray) -> float:
             dmin = min(dmin, dd)
     return dmin
 
-
 def _make_req_sock(
     ctx: zmq.Context, ep: str, timeout_ms: int, linger_ms: int
 ) -> zmq.Socket:
@@ -140,7 +99,6 @@ def _make_req_sock(
     s.connect(ep)
     return s
 
-
 def _reset_sock(
     ctx: zmq.Context, sock: zmq.Socket, ep: str, timeout_ms: int, linger_ms: int
 ) -> zmq.Socket:
@@ -150,6 +108,18 @@ def _reset_sock(
         pass
     return _make_req_sock(ctx, ep, timeout_ms, linger_ms)
 
+def _propagate_fallback(cfg, dt_inner, r_prev, v_prev, u_safe_all):
+    """Fallback state propagation if MATLAB is unavailable or returns invalid odometry."""
+    if cfg.model == "single_integrator":
+        r_pred = _clip(r_prev + dt_inner * u_safe_all, cfg.r_min, cfg.r_max)
+        v_pred = np.zeros_like(v_prev)
+    else:
+        r_pred = _clip(
+            r_prev + dt_inner * v_prev + 0.5 * (dt_inner ** 2) * u_safe_all,
+            cfg.r_min, cfg.r_max,
+        )
+        v_pred = _clip(v_prev + dt_inner * u_safe_all, cfg.v_min, cfg.v_max)
+    return r_pred, v_pred
 
 # ---------------------------------------------------------------------------
 # Main manager
@@ -163,18 +133,47 @@ def main() -> None:
     M: int = cfg.horizon_M()
     cosim_mode: str = getattr(ns, "cosim_mode", "matlab")
 
-    # Build CoSimConfig from CLI overrides
+    # Mathematically enforce time-base synchronization.
+    # The MPC outer step (cfg.dt) must be perfectly sub-divided into M inner steps.
+    # FIX (Bug 4): round(cfg.dt / M, 4) gave 0.1667 for M=6, so 0.1667×6=1.0002≠1.0.
+    # Use cfg.dt / M directly; cosim_step.m uses count-based stepping so the tiny
+    # float residual in e.g. 1/6 has zero impact on step counts.
+    derived_simulink_dt = cfg.dt / M          # exact: e.g. 1.0/6 = 0.16666...
+    user_dt = getattr(ns, "simulink_dt", None)
+
+    if user_dt is not None and abs(user_dt - derived_simulink_dt) > 1e-6:
+        log.warning(
+            "CLI --simulink-dt=%s ignored. Enforcing derived "
+            "simulink_dt=%.10f = dt/M = %.4f/%d.",
+            user_dt, derived_simulink_dt, cfg.dt, M
+        )
+
+    # Convert initial positions to tuple-of-tuples for CoSimConfig.
+    # ROOT-CAUSE FIX (Bug 6): These are passed to cosim_bridge.reset_experiment()
+    # which sets the Simulink integrator InitialCondition parameters before the
+    # first simulation step.  Without this, all agents start at (0,0,0) in
+    # Simulink, the first odometry feedback teleports the planning layer's r array
+    # to the origin, and the hybrid safety supervisor fires at full saturation,
+    # producing the "impulsive" behavior seen in the animation.
+    r0_np = cfg.initial_positions()          # ndarray (n_agents, dim)
+    initial_pos_tuple = tuple(
+        tuple(float(v) for v in row) for row in r0_np.tolist()
+    )
+
     cosim_cfg = CoSimConfig(
         n_agents=cfg.n_agents,
         dim=cfg.dim,
         planning_dt=cfg.dt,
-        simulink_dt=getattr(ns, "simulink_dt", None) or 0.01,
+        simulink_dt=derived_simulink_dt,
         k_heading=getattr(ns, "k_heading", None) or 4.0,
+        initial_positions=initial_pos_tuple,       # ← KEY FIX
     )
 
     log.info(
-        "CosimManager | model=%s M=%d outer_steps=%d cosim_mode=%s",
+        "CosimManager | model=%s M=%d outer_steps=%d cosim_mode=%s "
+        "simulink_dt=%.6f initial_positions=%s",
         cfg.model, M, cfg.outer_steps, cosim_mode,
+        derived_simulink_dt, initial_pos_tuple,
     )
 
     # --- MATLAB bridge ---
@@ -189,13 +188,13 @@ def main() -> None:
     # --- ZMQ context ---
     ctx = zmq.Context.instance()
 
-    # Coordinator socket (plant → coordinator)
+    # Coordinator socket
     coord_req = _make_req_sock(
         ctx, cfg.plant_to_coord_rep, cfg.req_timeout_ms, cfg.req_linger_ms
     )
     log.info("REQ -> Coordinator at %s", cfg.plant_to_coord_rep)
 
-    # Hybrid controller sockets (one per agent)
+    # Hybrid controller sockets
     hybrid_reqs: Dict[int, zmq.Socket] = {}
     hybrid_eps: Dict[int, str] = {}
     for i in range(1, cfg.n_agents + 1):
@@ -205,17 +204,19 @@ def main() -> None:
         log.info("REQ -> controller_node %d (hybrid) at %s", i, ep)
 
     # --- State ---
-    # MUST explicitly cast the nested tuples to numpy arrays
-    r = np.array(cfg.initial_positions(), dtype=float) # (n_agents, dim) planning-layer pos
-    v = np.array(cfg.initial_velocities(), dtype=float) # (n_agents, dim)
-
+    r = cfg.initial_positions().copy()
+    v = cfg.initial_velocities().copy()
     k_global = 0
 
     try:
+        # Guarantee Simulink starts fresh from 0 at the beginning of the experiment
+        if hasattr(bridge, 'reset_experiment'):
+            bridge.reset_experiment()
+            
         for outer_j in range(cfg.outer_steps):
             outer_t0 = time.perf_counter()
 
-            # ---- 1. Request nominal MPC sequence from coordinator ----
+            # ---- 1. Request nominal MPC sequence ----
             try:
                 coord_req.send(
                     dumps(
@@ -251,21 +252,25 @@ def main() -> None:
             matlab_step_ms_list: List[float] = []
 
             for inner_t in range(M):
-                u_nom_now = U_nom[inner_t, :, :]   # (n_agents, dim)
+                r_prev = r.copy()
+                v_prev = v.copy()
+
+                u_nom_now = U_nom[inner_t, :, :]
                 u_safe_all = np.zeros_like(u_nom_now)
                 mode_data: List[Dict[str, Any]] = []
 
-                # ---- 2a. Hybrid safety filter (per agent) ----
+                # ---- 2a. Hybrid safety filter ----
                 for i in range(1, cfg.n_agents + 1):
                     bary_i = _get_keyed(
-                        bary_dict, i, [r[i - 1, 0], r[i - 1, 1]]
+                        bary_dict, i, [r_prev[i - 1, 0], r_prev[i - 1, 1]]
                     )
                     payload = {
                         "agent_id": i,
-                        "r_all": r.tolist(),
-                        "v_all": v.tolist(),
+                        "r_all": r_prev.tolist(),
+                        "v_all": v_prev.tolist(),
                         "u_nom": u_nom_now[i - 1, :].tolist(),
                         "bary_r": bary_i,
+                        "dt_inner": float(derived_simulink_dt),
                     }
                     try:
                         hybrid_reqs[i].send(
@@ -294,48 +299,55 @@ def main() -> None:
 
                 u_safe_all = _clip(u_safe_all, cfg.u_min, cfg.u_max)
 
+                # predict theoretical position for error checking
+                r_pred, v_pred = _propagate_fallback(
+                    cfg, cosim_cfg.simulink_dt, r_prev, v_prev, u_safe_all
+                )
+
                 # ---- 2b. Simulink step ----
                 sim_t0 = time.perf_counter()
                 bundle: OdometryBundle = bridge.step(outer_j, u_safe_all, inner_t)
                 matlab_step_ms = (time.perf_counter() - sim_t0) * 1e3
                 matlab_step_ms_list.append(matlab_step_ms)
 
+                have_valid_odo = (
+                    cosim_mode == "matlab"
+                    and bundle.positions.shape == (cfg.n_agents, cfg.dim)
+                    and np.isfinite(bundle.positions).all()
+                )
+
                 # ---- 2c. Update planning-layer state ----
-                #   Use Simulink positions as feedback (closed-loop).
-                #   Fall back to single-integrator kinematics if odometry is
-                #   all-zero (dry-run or bridge failure).
-                if cosim_mode == "matlab":
-                    r = bundle.positions.copy()
-                    # Approximate v from unicycle linear speed + heading
+                if have_valid_odo:
+                    r_next = _clip(bundle.positions.copy(), cfg.r_min, cfg.r_max)
+                    v_next = np.zeros_like(v_prev)
                     for i in range(cfg.n_agents):
-                        v[i, 0] = bundle.linear_speeds[i] * np.cos(bundle.headings[i])
-                        v[i, 1] = bundle.linear_speeds[i] * np.sin(bundle.headings[i])
-                    r = _clip(r, cfg.r_min, cfg.r_max)
-                    v = _clip(v, cfg.v_min, cfg.v_max)
+                        v_next[i, 0] = bundle.linear_speeds[i] * np.cos(bundle.headings[i])
+                        v_next[i, 1] = bundle.linear_speeds[i] * np.sin(bundle.headings[i])
+                    v_next = _clip(v_next, cfg.v_min, cfg.v_max)
                 else:
-                    # Fallback: simple single-integrator update
-                    if cfg.model == "single_integrator":
-                        r = _clip(r + cfg.dt * u_safe_all, cfg.r_min, cfg.r_max)
-                        v = np.zeros_like(v)
-                    else:
-                        r = _clip(r + cfg.dt * v, cfg.r_min, cfg.r_max)
-                        v = _clip(v + cfg.dt * u_safe_all, cfg.v_min, cfg.v_max)
+                    r_next, v_next = r_pred, v_pred
 
                 # ---- 2d. Log ----
                 logger.log_planning_step(
-                    k_global, outer_j, inner_t, r, v,
+                    k_global, outer_j, inner_t, r_prev, v_prev,
                     u_nom_now, u_safe_all, diag,
                 )
-                logger.log_odometry_step(k_global, outer_j, inner_t, bundle, r)
+                # FIX (secondary logging bug): log odometry error against r_pred
+                # (kinematic single-integrator prediction), not against r_next.
+                # Previously r_next WAS bundle.positions, so err_pos was always 0.
+                # The tracking error = Simulink position minus what the planning
+                # model predicted — this is the meaningful quantity.
+                logger.log_odometry_step(k_global, outer_j, inner_t, bundle, r_pred)
                 logger.log_hybrid_modes_step(k_global, outer_j, inner_t, mode_data)
 
-                # Track position error for health log
-                for i in range(cfg.n_agents):
-                    err = float(
-                        np.linalg.norm(bundle.positions[i] - r[i])
-                    )
-                    odo_errors.append(err)
+                if have_valid_odo:
+                    for i in range(cfg.n_agents):
+                        err = float(np.linalg.norm(bundle.positions[i] - r_pred[i]))
+                        odo_errors.append(err)
 
+                # Commit step
+                r = r_next
+                v = v_next
                 k_global += 1
 
             # ---- 3. Outer-step health log ----
@@ -383,7 +395,6 @@ def main() -> None:
 
         logger.close()
         log.info("CosimManager finished.")
-
 
 if __name__ == "__main__":
     main()

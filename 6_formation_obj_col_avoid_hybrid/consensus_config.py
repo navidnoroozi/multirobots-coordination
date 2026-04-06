@@ -48,15 +48,15 @@ class NetConfig:
     # --- Constraints ---
     r_min: float = -10.0
     r_max: float = 10.0
-    u_min: float = -0.5    # <-- Changed from -2.0
-    u_max: float = 0.5     # <-- Changed from 2.0
-    u_mag: float = 0.5     # <-- Changed from 2.0
-    v_min: float = -0.5    # <-- Changed from -20.0
-    v_max: float = 0.5     # <-- Changed from 20.0
+    u_min: float = -2.0    # <-- Changed from -2.0
+    u_max: float = 2.0     # <-- Changed from 2.0
+    u_mag: float = 2.0     # <-- Changed from 2.0
+    v_min: float = -20.0    # <-- Changed from -20.0
+    v_max: float = 20.0     # <-- Changed from 20.0
 
     # --- Costs ---
-    w_track: float = 1.0   # <-- Reduced from 10.0 to prevent aggressive pulling
-    w_du: float = 2.0      # <-- Increased from 1.0 to heavily penalize jerky movements
+    w_track: float = 10.0   # <-- Reduced from 10.0 to prevent aggressive pulling
+    w_du: float = 1.0      # <-- Increased from 1.0 to heavily penalize jerky movements
     w_u: float = 0.1
     w_v: float = 0.10
 
@@ -80,8 +80,8 @@ class NetConfig:
 
     # --- Initial conditions ---
     r0_single: Tuple[Tuple[float, float], ...] = (
-        (-4.0, 4.0),
-        (3.5, 4.0),
+        (-2.0, 7.0),
+        (7.5, 4.0),
         (4.5, -4.5),
         (-3.5, -4.0),
     )
@@ -111,7 +111,7 @@ class NetConfig:
     safety_enabled: bool = True
     safety_method: str = "explicit_hybrid"
 
-    dt: float = 1.0
+    dt: float = 0.07
 
     # local safety graph / local sensing radii
     safety_warning_radius: float = (
@@ -139,8 +139,8 @@ class NetConfig:
     # obstacle model: circles (cx, cy, radius)
     obstacles_enabled: bool = True
     obstacles_circles: Tuple[Tuple[float, float, float], ...] = (
-        (-1.0, 1.0, 0.90),
-    )  # one obstacle in the center with radius 0.90
+        (0.0, 1.0, 1.90),
+    )  # (x_o, y_o, r_o), x_o is the x-coordinate of the center, y_o is the y-coordinate of the center, and r_o is the radius of the obstacle; these parameters can be adjusted to add more obstacles or change their positions and sizes
     obstacle_margin: float = 0.20
 
     # single-integrator gains

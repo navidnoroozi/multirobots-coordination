@@ -43,7 +43,7 @@ class CoSimConfig:
     k_heading: float = 4.0
     """Proportional gain for the heading error controller [rad/(rad·s)]."""
 
-    k_speed: float = 1.0
+    k_speed: float = 10.0
     """Speed scaling applied to v_ref (feedforward gain, dimensionless)."""
 
     v_min_threshold: float = 0.05
@@ -56,9 +56,27 @@ class CoSimConfig:
     """Saturation on ω (angular rate) [rad/s]."""
 
     # ---------------------------------------------------------------
-    # Initial headings (one per agent, radians)
+    # Initial state (positions and headings), one entry per agent.
+    #
+    # These MUST match consensus_config.NetConfig.initial_positions()
+    # so that the Simulink integrators (Int_x, Int_y, Int_theta) start
+    # at the same coordinates as the planning layer.
+    #
+    # Root-cause fix for the "agents jump to origin" bug:
+    #   build_unicycle_model.m hard-codes InitialCondition='0' on every
+    #   integrator.  reset_experiment() in cosim_bridge.py overrides
+    #   those initial conditions using set_param() before the first
+    #   simulation run, reading from these fields.  Without this the
+    #   planning layer starts at the true initial positions while
+    #   Simulink starts every agent at (0, 0, 0), causing all agents to
+    #   teleport to the origin on the very first feedback step.
     # ---------------------------------------------------------------
+    initial_positions: Tuple[Tuple[float, float], ...] = ()
+    """Per-agent (x0, y0) in planning-layer coordinates.
+    Set automatically by cosim_manager from cfg.initial_positions()."""
+
     initial_headings: Tuple[float, ...] = (0.0, 0.0, 0.0, 0.0)
+    """Per-agent initial heading θ₀ in radians."""
 
     # ---------------------------------------------------------------
     # MATLAB engine / startup

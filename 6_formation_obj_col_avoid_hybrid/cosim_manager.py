@@ -205,8 +205,9 @@ def main() -> None:
         log.info("REQ -> controller_node %d (hybrid) at %s", i, ep)
 
     # --- State ---
-    r = cfg.initial_positions().copy()      # (n_agents, dim) planning-layer pos
-    v = cfg.initial_velocities().copy()     # (n_agents, dim)
+    # MUST explicitly cast the nested tuples to numpy arrays
+    r = np.array(cfg.initial_positions(), dtype=float) # (n_agents, dim) planning-layer pos
+    v = np.array(cfg.initial_velocities(), dtype=float) # (n_agents, dim)
 
     k_global = 0
 
@@ -303,7 +304,7 @@ def main() -> None:
                 #   Use Simulink positions as feedback (closed-loop).
                 #   Fall back to single-integrator kinematics if odometry is
                 #   all-zero (dry-run or bridge failure).
-                if cosim_mode == "matlab" and bundle.positions.any():
+                if cosim_mode == "matlab":
                     r = bundle.positions.copy()
                     # Approximate v from unicycle linear speed + heading
                     for i in range(cfg.n_agents):

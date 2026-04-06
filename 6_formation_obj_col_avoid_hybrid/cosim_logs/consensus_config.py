@@ -48,15 +48,15 @@ class NetConfig:
     # --- Constraints ---
     r_min: float = -10.0
     r_max: float = 10.0
-    u_min: float = -0.5    # <-- Changed from -2.0
-    u_max: float = 0.5     # <-- Changed from 2.0
-    u_mag: float = 0.5     # <-- Changed from 2.0
-    v_min: float = -0.5    # <-- Changed from -20.0
-    v_max: float = 0.5     # <-- Changed from 20.0
+    u_min: float = -2.0
+    u_max: float = 2.0
+    u_mag: float = 2.0
+    v_min: float = -20.0
+    v_max: float = 20.0
 
     # --- Costs ---
-    w_track: float = 1.0   # <-- Reduced from 10.0 to prevent aggressive pulling
-    w_du: float = 2.0      # <-- Increased from 1.0 to heavily penalize jerky movements
+    w_track: float = 10.0
+    w_du: float = 1.0
     w_u: float = 0.1
     w_v: float = 0.10
 

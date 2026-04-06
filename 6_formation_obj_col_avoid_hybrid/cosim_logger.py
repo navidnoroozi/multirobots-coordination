@@ -1,16 +1,18 @@
 """cosim_logger.py
 Structured CSV and diagnostic logger for the co-simulation platform.
 
-Four output streams
+Five output streams
 -------------------
-1. **planning.csv**  – one row per (outer_j, inner_t, agent) capturing the
+1. **planning.csv** – one row per (outer_j, inner_t, agent) capturing the
    planning layer's state: r, v, u_nom, u_safe, hybrid mode, objectives.
-2. **odometry.csv**  – one row per (outer_j, inner_t, agent) from Simulink:
+2. **odometry.csv** – one row per (outer_j, inner_t, agent) from Simulink:
    x, y, θ, v, ω.
 3. **hybrid_modes.csv** – mirrors plant_node.py's existing hybrid_modes.csv
    but with the co-sim outer/inner index.
-4. **health.csv**    – one row per outer_j with timing, error counts, and
+4. **health.csv** – one row per outer_j with timing, error counts, and
    convergence indicators useful for diagnosing the co-sim platform.
+5. **consensus_metrics.csv** - one row per inner step aggregating the hybrid
+   control modes (n_F, n_C, n_O, n_CO, n_T) across all agents.
 
 Design principles
 -----------------
@@ -35,7 +37,6 @@ from cosim_bridge import OdometryBundle
 
 log = logging.getLogger(__name__)
 
-
 class CoSimLogger:
     """Multi-stream CSV logger for the co-simulation platform."""
 
@@ -49,12 +50,14 @@ class CoSimLogger:
         self._f_odometry = None
         self._f_health = None
         self._f_modes = None
+        self._f_metrics = None  # New stream
 
         # csv writers
         self._w_planning = None
         self._w_odometry = None
         self._w_health = None
         self._w_modes = None
+        self._w_metrics = None  # New stream
 
         self._outer_since_flush = 0
         self._start_wall: float = 0.0
@@ -117,11 +120,20 @@ class CoSimLogger:
             "formation_hold_active",
         ])
 
+        # NEW: Inner step consensus metrics
+        self._f_metrics = open(d / "consensus_metrics.csv", "w", newline="")
+        self._w_metrics = csv.writer(self._f_metrics)
+        self._w_metrics.writerow([
+            "k_global", "outer_j", "inner_t", 
+            "n_F", "n_C", "n_O", "n_CO", "n_T",
+            "_h_pair_num", "_circle_barrier_num"
+        ])
+
         log.info("[Logger] Opened log files in %s", self._log_dir)
 
     def close(self) -> None:
         """Flush and close all open files."""
-        for fh in [self._f_planning, self._f_odometry, self._f_health, self._f_modes]:
+        for fh in [self._f_planning, self._f_odometry, self._f_health, self._f_modes, self._f_metrics]:
             if fh is not None:
                 try:
                     fh.flush()
@@ -199,14 +211,27 @@ class CoSimLogger:
         inner_t: int,
         mode_data: List[Dict[str, Any]],
     ) -> None:
-        """One row per agent – hybrid-mode diagnostics."""
+        """One row per agent – hybrid-mode diagnostics, plus one aggregate inner-step row."""
+        
+        # Track aggregate metrics for inner step consensus_metrics.csv
+        counts = {"F": 0, "C": 0, "O": 0, "CO": 0, "T": 0}
+        sum_h_pairs = 0
+        sum_circle_barriers = 0
+
         for i, d in enumerate(mode_data, start=1):
+            # Aggregate stats
+            mode = d.get("mode", "F")
+            counts[mode] = counts.get(mode, 0) + 1
+            sum_h_pairs += int(d.get("_h_pair_num", 0))
+            sum_circle_barriers += int(d.get("_circle_barrier_num", 0))
+
+            # Write per-agent mode row
             wp = d.get("target_waypoint", [float("nan"), float("nan")])
             if not (isinstance(wp, (list, tuple)) and len(wp) >= 2):
                 wp = [float("nan"), float("nan")]
             self._w_modes.writerow([
                 k_global, outer_j, inner_t, i,
-                d.get("mode", "F"),
+                mode,
                 d.get("desired_mode", "F"),
                 d.get("effective_mode", "F"),
                 _f(d.get("d_agent_min", float("nan"))),
@@ -219,6 +244,14 @@ class CoSimLogger:
                 int(d.get("_circle_barrier_num", 0)),
                 int(bool(d.get("formation_hold_active", False))),
             ])
+            
+        # Write aggregate inner step row to metrics
+        self._w_metrics.writerow([
+            k_global, outer_j, inner_t,
+            counts.get("F", 0), counts.get("C", 0), counts.get("O", 0),
+            counts.get("CO", 0), counts.get("T", 0),
+            sum_h_pairs, sum_circle_barriers
+        ])
 
     def log_health(
         self,
@@ -262,10 +295,9 @@ class CoSimLogger:
     # ------------------------------------------------------------------
 
     def _flush_all(self) -> None:
-        for fh in [self._f_planning, self._f_odometry, self._f_health, self._f_modes]:
+        for fh in [self._f_planning, self._f_odometry, self._f_health, self._f_modes, self._f_metrics]:
             if fh is not None:
                 fh.flush()
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -277,7 +309,6 @@ def _f(x: Any) -> Any:
         return float(x)
     except (TypeError, ValueError):
         return x
-
 
 def _get_keyed(d: Dict, i: int, default: Any) -> Any:
     if not isinstance(d, dict):

@@ -51,12 +51,17 @@ htmlcov/
 instance/
 *.sqlite3
 
-# Simulink slrj folder
-./slrj/
+# Simulink slprj folder and other autosave files
+slprj/
+*.autosave
+*.slx.autosave
+*.mdl.autosave
+*.slx~
+*.mdl~
 
 # Plot outputs and performance metrics (generated dynamically)
 *.csv
 *.png
 *.jpg
-*./figures_png/
+/figures_png/
 *.gif

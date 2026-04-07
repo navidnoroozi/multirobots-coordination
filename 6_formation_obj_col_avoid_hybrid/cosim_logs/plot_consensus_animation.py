@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 import csv
 import time
+import io
+from PIL import Image
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -516,7 +518,7 @@ def main() -> None:
 
         kk = int(k_unique[ti])
         ax.set_title(
-            f"Inner step k={kk}/{k_max} | single integrator"
+            f"Inner step k={kk}/{k_max} | Unicycle Vehicle Model",
         )
         overlay_text.set_text(_overlay_string(ti))
 
@@ -734,22 +736,48 @@ def main() -> None:
         playing["on"] = False
         frame["t"] = 0
 
-        def _update_export(frame_idx: int):
+        # 1. Apply the first frame to force the layout
+        _apply_frame(0)
+        fig.canvas.draw()
+        
+        # 2. Calculate a tight bounding box to strictly crop out white margins
+        bbox = fig.get_tightbbox(fig.canvas.get_renderer())
+
+        gif_path = args.gif_path or "consensus_animation_with_state_machine.gif"
+        total_frames = int(np.ceil(T / step))
+        print(f"[plot_consensus_animation] Rendering {total_frames} frames to {gif_path} ...")
+        
+        images = []
+        
+        # 3. Lowering the DPI from 100 to 72 scales down dimensions and drastically drops file size
+        export_dpi = 72 
+        
+        for frame_idx in range(total_frames):
             ti = int(np.clip(frame_idx * step, 0, T - 1))
             frame["t"] = ti
             _apply_frame(ti)
-
-            return []
-
-        ani_export = FuncAnimation(
-            fig,
-            _update_export,
-            frames=int(np.ceil(T / step)),
-            interval=1000.0 / gif_fps,
-            blit=False,
-        )
-        gif_path = args.gif_path or "consensus_animation_with_state_machine.gif"
-        ani_export.save(gif_path, writer=PillowWriter(fps=gif_fps))
+            
+            # Render the frame to memory using the pre-calculated cropped bounding box
+            buf = io.BytesIO()
+            fig.savefig(buf, format='png', dpi=export_dpi, bbox_inches=bbox)
+            buf.seek(0)
+            
+            # Load the image into PIL
+            img = Image.open(buf)
+            img.load()
+            images.append(img)
+            
+        # 4. Save the compiled GIF using optimization for inter-frame compression
+        duration_ms = int(1000.0 / gif_fps)
+        if images:
+            images[0].save(
+                gif_path,
+                save_all=True,
+                append_images=images[1:],
+                duration=duration_ms,
+                loop=0,
+                optimize=True  # Shrinks the GIF by dropping unchanged background pixels
+            )
         print(f"[plot_consensus_animation] wrote {gif_path}")
 
     if not args.no_show and not args.save_gif:

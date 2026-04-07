@@ -7,12 +7,11 @@ Motion-Control:
 
 HOW TO RUN:
 
-  - Planning+Motion-Coontrol
+- Planning+Motion-Coontrol
 python cosim_experiment_runner.py --n-agents 4 --model single_integrator --outer-steps 500 --cosim-mode matlab
 
-  - Planning
+- Solo Planning
 python cosim_experiment_runner.py --n-agents 4 --model single_integrator --outer-steps 500 --cosim-mode dry-run
-
 
 
 OPTION 2 - ONLY PYTHON:

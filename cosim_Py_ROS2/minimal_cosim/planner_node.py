@@ -123,8 +123,7 @@ class PlannerNode(Node):
         )
 
         self.get_logger().info(
-            'PlannerNode started  (planning rate = %.0f Hz)',
-            1.0 / self._planning_dt,
+            f'PlannerNode started  (planning rate = {1.0 / self._planning_dt:.0f} Hz)'
         )
 
     # ═══════════════════════════════════════════════════════════════════════
@@ -158,12 +157,9 @@ class PlannerNode(Node):
         self.current_omega = msg.twist.twist.angular.z
 
         self.get_logger().info(
-            '[ODOM]  x=%6.3f m   y=%6.3f m   θ=%6.1f°   v=%5.3f m/s   ω=%5.3f rad/s',
-            self.current_x,
-            self.current_y,
-            math.degrees(self.current_theta),
-            self.current_v,
-            self.current_omega,
+            f'[ODOM]  x={self.current_x:6.3f} m   y={self.current_y:6.3f} m'
+            f'   θ={math.degrees(self.current_theta):6.1f}°'
+            f'   v={self.current_v:5.3f} m/s   ω={self.current_omega:5.3f} rad/s'
         )
 
     # ═══════════════════════════════════════════════════════════════════════
@@ -183,7 +179,7 @@ class PlannerNode(Node):
             level_str = level_map.get(status.level, 'UNKNOWN')
             kv_str = ',  '.join(f'{kv.key}={kv.value}' for kv in status.values)
             self.get_logger().info(
-                '[DIAG]  %s  [%s]  — %s', status.name, level_str, kv_str
+                f'[DIAG]  {status.name}  [{level_str}]  — {kv_str}'
             )
 
     # ═══════════════════════════════════════════════════════════════════════
@@ -218,10 +214,9 @@ class PlannerNode(Node):
         self.cmd_vel_pub.publish(cmd)
 
         self.get_logger().info(
-            '[PLAN]  t=%6.2f s   cmd → v=%.3f m/s,  ω=%.3f rad/s   '
-            '|  current pose: x=%.3f, y=%.3f, θ=%.1f°',
-            self._t, v_cmd, omega_cmd,
-            self.current_x, self.current_y, math.degrees(self.current_theta),
+            f'[PLAN]  t={self._t:6.2f} s   cmd → v={v_cmd:.3f} m/s,  ω={omega_cmd:.3f} rad/s'
+            f'   |  current pose: x={self.current_x:.3f}, y={self.current_y:.3f},'
+            f' θ={math.degrees(self.current_theta):.1f}°'
         )
 
         # ── Formation convergence check (placeholder) ─────────────────────
@@ -232,7 +227,7 @@ class PlannerNode(Node):
         laps   = self._t / period
         if laps > 0 and abs(laps - round(laps)) < self._planning_dt / period:
             self.get_logger().info(
-                '[PLAN]  *** Completed %.0f lap(s) of the demo circle ***', round(laps)
+                f'[PLAN]  *** Completed {round(laps):.0f} lap(s) of the demo circle ***'
             )
 
 

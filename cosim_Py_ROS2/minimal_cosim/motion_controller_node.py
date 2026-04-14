@@ -132,7 +132,7 @@ class MotionControllerNode(Node):
         # ── Ready ──────────────────────────────────────────────────────────
         # get_logger() is ROS2's structured logger.  Uses ROS_LOG_LEVEL env var.
         # In production you'd use .debug() for verbose, .warn() for issues.
-        self.get_logger().info('MotionControllerNode started  (dt=%.3f s, 20 Hz)', self.dt)
+        self.get_logger().info(f'MotionControllerNode started  (dt={self.dt:.3f} s, 20 Hz)')
 
     # ═══════════════════════════════════════════════════════════════════════
     # SUBSCRIBER CALLBACK — called by rclpy whenever a /cmd_vel message arrives
@@ -152,7 +152,7 @@ class MotionControllerNode(Node):
         self.v     = msg.linear.x
         self.omega = msg.angular.z
         self.get_logger().debug(
-            'cmd_vel received:  v=%.3f m/s,  ω=%.3f rad/s', self.v, self.omega
+            f'cmd_vel received:  v={self.v:.3f} m/s,  ω={self.omega:.3f} rad/s'
         )
 
     # ═══════════════════════════════════════════════════════════════════════
@@ -258,8 +258,7 @@ class MotionControllerNode(Node):
         diag_array.status.append(status)
         self.diag_pub.publish(diag_array)
         self.get_logger().info(
-            '[DIAG] x=%.3f m,  y=%.3f m,  θ=%.1f°',
-            self.x, self.y, math.degrees(self.theta)
+            f'[DIAG] x={self.x:.3f} m,  y={self.y:.3f} m,  θ={math.degrees(self.theta):.1f}°'
         )
 
 

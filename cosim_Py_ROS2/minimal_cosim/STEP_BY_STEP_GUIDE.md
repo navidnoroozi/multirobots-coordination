@@ -315,7 +315,7 @@ diagram above.
 
 ### 7.7 Plot odometry values over time
 ```bash
-rqt_plot /odom/pose/pose/position/x /odom/pose/pose/position/y
+ros2 run rqt_plot rqt_plot /odom/pose/pose/position/x /odom/pose/pose/position/y
 ```
 You should see sinusoidal curves — the robot is moving in a circle!
 

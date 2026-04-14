@@ -255,8 +255,11 @@ The Articulated Robotics YouTube playlist <youtube.com/playlist?list=PLunhqkrRNR
 The linorobot2 documentation at <github.com/linorobot/linorobot2> covers Week 4 onward.
 
 
+## System Architecture
+```
 | Layer      | Hardware       | Software                        | Role                               |
 | ---------- | -------------- | ------------------------------- | ---------------------------------- |
-| Low-Level  | ESP32          | linorobot2_hardware (micro-ROS) | PWM motor control, encoder reading |
-| Mid-Level  | Raspberry Pi 4 | linorobot2 (ROS2 Humble)        | Odometry, kinematics, Wi-Fi bridge |
-| High-Level | Ubuntu VM      | Your Python + rclpy             | Formation planning, logging        |
+| Low-Level  | ESP32          | `linorobot2_hardware` (micro-ROS) | PWM motor control, encoder reading |
+| Mid-Level  | Raspberry Pi 4 | `linorobot2` (ROS 2 Humble)      | Odometry, kinematics, Wi-Fi bridge |
+| High-Level | Ubuntu VM      | Python + `rclpy`                 | Formation planning, logging        |
+´´´

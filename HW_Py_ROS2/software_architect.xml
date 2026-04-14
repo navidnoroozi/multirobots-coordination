@@ -1,0 +1,243 @@
+<svg width="960" height="840" viewBox="0 0 960 840" xmlns="http://www.w3.org/2000/svg" role="img">
+<title>Tier B Software Architecture — one robot</title>
+<desc>Tier-based software architecture for one Tier B mobile robot: planning layer on Host PC, ROS2 motion control on RPi4, micro-ROS firmware on ESP32, and physical actuation/sensing layer.</desc>
+<defs>
+  <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M1 2L9 5L1 8" fill="none" stroke="context-stroke" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+</defs>
+<rect width="960" height="840" fill="#FFFFFF"/>
+<text x="480" y="20" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="15" font-weight="600" fill="#1a1a1a">Tier B Mobile Robot — Software Architecture (one robot, ×4 identical)</text>
+<text x="480" y="38" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="10" font-weight="400" fill="#5F5E5A">Python planning layer · ROS 2 Humble (RPi4) · micro-ROS / linorobot2_hardware (ESP32) · Physical</text>
+<rect x="10" y="54" width="940" height="166" rx="7" fill="#EEEDFE" stroke="#534AB7" stroke-width="1.0"/>
+<rect x="10" y="54" width="940" height="20" rx="7" fill="#534AB7"/>
+<rect x="10" y="67" width="940" height="7" fill="#534AB7"/>
+<text x="480" y="68" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">Tier 1 — Python Planning Layer   ·   Host PC   ·   Ubuntu 22.04   ·   Python 3.12</text>
+<rect x="22" y="80" width="223" height="132" rx="4" fill="#FFFFFF" stroke="#CECBF6" stroke-width="0.7"/>
+<rect x="22" y="80" width="223" height="15" rx="4" fill="#3C3489"/>
+<rect x="22" y="91" width="223" height="4" fill="#3C3489"/>
+<text x="133" y="92" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="600" fill="#FFFFFF">coordinator_node.py</text>
+<text x="28" y="101" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">ZMQ REP server :5556</text>
+<text x="28" y="114" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Receives plant_step {r, v}</text>
+<text x="28" y="127" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Aggregates U_seq from agents</text>
+<text x="28" y="140" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Computes barycenter r̄_i(j)</text>
+<text x="28" y="153" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Distributes state to ctrls</text>
+<text x="28" y="166" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Outer step rate: 1 Hz</text>
+<text x="28" y="179" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Manages formation targets</text>
+<text x="28" y="192" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Closes outer feedback loop</text>
+<rect x="253" y="80" width="223" height="132" rx="4" fill="#FFFFFF" stroke="#CECBF6" stroke-width="0.7"/>
+<rect x="253" y="80" width="223" height="15" rx="4" fill="#3C3489"/>
+<rect x="253" y="91" width="223" height="4" fill="#3C3489"/>
+<text x="364" y="92" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="600" fill="#FFFFFF">controller_node.py  × 4</text>
+<text x="259" y="101" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">ZMQ REQ socket per agent</text>
+<text x="259" y="114" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Distributed MPC OCP solver</text>
+<text x="259" y="127" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Coords: y_i = z_i − c_i</text>
+<text x="259" y="140" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Terminal hull constraint</text>
+<text x="259" y="153" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Lexicographic OCP selection</text>
+<text x="259" y="166" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Horizon M, N agents</text>
+<text x="259" y="179" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Returns U_seq[0 : M]</text>
+<text x="259" y="192" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">One instance per robot i</text>
+<rect x="484" y="80" width="223" height="132" rx="4" fill="#FFFFFF" stroke="#CECBF6" stroke-width="0.7"/>
+<rect x="484" y="80" width="223" height="15" rx="4" fill="#3C3489"/>
+<rect x="484" y="91" width="223" height="4" fill="#3C3489"/>
+<text x="595" y="92" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="600" fill="#FFFFFF">Hybrid safety supervisor</text>
+<text x="490" y="101" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Mode F: nominal MPC</text>
+<text x="490" y="114" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Mode C: collision avoidance</text>
+<text x="490" y="127" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Mode O: obstacle avoidance</text>
+<text x="490" y="140" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Mode CO: blended safety</text>
+<text x="490" y="153" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Mode T: transition smooth</text>
+<text x="490" y="166" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Hysteresis d_enter / d_exit</text>
+<text x="490" y="179" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Blending weights β_C β_O</text>
+<text x="490" y="192" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Output: u_safe per agent</text>
+<rect x="715" y="80" width="223" height="132" rx="4" fill="#FFFFFF" stroke="#CECBF6" stroke-width="0.7"/>
+<rect x="715" y="80" width="223" height="15" rx="4" fill="#3C3489"/>
+<rect x="715" y="91" width="223" height="4" fill="#3C3489"/>
+<text x="826" y="92" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="600" fill="#FFFFFF">cosim_manager.py  (ZMQ bridge)</text>
+<text x="721" y="101" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Replaces plant_node.py</text>
+<text x="721" y="114" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">ZMQ REP: receives u_safe</text>
+<text x="721" y="127" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Hardware mode → robot_agent</text>
+<text x="721" y="140" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Sim mode → cosim_bridge</text>
+<text x="721" y="153" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Sends r, v to coordinator</text>
+<text x="721" y="166" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Dry-run without MATLAB</text>
+<text x="721" y="179" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Outer-loop timing control</text>
+<text x="721" y="192" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">OdometryBundle aggregation</text>
+<rect x="10" y="220" width="940" height="42" rx="0" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.7"/>
+<line x1="922" y1="224" x2="922" y2="258" stroke="#C23B1A" stroke-width="2.2" marker-end="url(#arr)"/>
+<text x="918" y="245" text-anchor="end" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="600" fill="#C23B1A">u_safe →</text>
+<line x1="38" y1="258" x2="38" y2="224" stroke="#0A6E56" stroke-width="2.2" marker-end="url(#arr)"/>
+<text x="42" y="245" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="600" fill="#0A6E56">← r, v (odometry)</text>
+<text x="480" y="236" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="10" font-weight="600" fill="#633806">WiFi  802.11n/ac   ·   ZMQ REQ / REP   ·   per robot   ·   UDP transport</text>
+<text x="480" y="250" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#633806">u_safe: velocity command (Twist)   ←→   r, v: position + velocity (odometry)</text>
+<rect x="10" y="262" width="940" height="160" rx="7" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1.0"/>
+<rect x="10" y="262" width="940" height="20" rx="7" fill="#0F6E56"/>
+<rect x="10" y="275" width="940" height="7" fill="#0F6E56"/>
+<text x="480" y="276" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">Tier 2 — ROS 2 Motion Control Layer   ·   Raspberry Pi 4B   ·   Ubuntu 22.04   ·   ROS 2 Humble</text>
+<rect x="22" y="288" width="223" height="126" rx="4" fill="#FFFFFF" stroke="#9FE1CB" stroke-width="0.7"/>
+<rect x="22" y="288" width="223" height="15" rx="4" fill="#085041"/>
+<rect x="22" y="299" width="223" height="4" fill="#085041"/>
+<text x="133" y="300" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="600" fill="#FFFFFF">robot_agent.py</text>
+<text x="28" y="309" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">rclpy Node (Python)</text>
+<text x="28" y="322" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">ZMQ REP: receives u_safe</text>
+<text x="28" y="335" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Translates → geometry_msgs/Twist</text>
+<text x="28" y="348" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Publishes /cmd_vel @ 10 Hz</text>
+<text x="28" y="361" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Subscribes /odom</text>
+<text x="28" y="374" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Extracts r, v from Odometry</text>
+<text x="28" y="387" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">ZMQ REQ: sends r, v</text>
+<text x="28" y="400" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">ROS_DOMAIN_ID isolation</text>
+<rect x="253" y="288" width="223" height="126" rx="4" fill="#FFFFFF" stroke="#9FE1CB" stroke-width="0.7"/>
+<rect x="253" y="288" width="223" height="15" rx="4" fill="#085041"/>
+<rect x="253" y="299" width="223" height="4" fill="#085041"/>
+<text x="364" y="300" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="600" fill="#FFFFFF">micro_ros_agent  (USB broker)</text>
+<text x="259" y="309" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Bridges ROS 2 ↔ ESP32</text>
+<text x="259" y="322" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">USB 2.0 serial transport</text>
+<text x="259" y="335" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Forwards /cmd_vel to ESP32</text>
+<text x="259" y="348" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Receives /odom/unfiltered</text>
+<text x="259" y="361" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Receives /imu/data</text>
+<text x="259" y="374" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">DDS proxy for micro-ROS</text>
+<text x="259" y="387" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Auto-reconnect on drop</text>
+<text x="259" y="400" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">rclc_executor lifecycle</text>
+<rect x="484" y="288" width="223" height="126" rx="4" fill="#FFFFFF" stroke="#9FE1CB" stroke-width="0.7"/>
+<rect x="484" y="288" width="223" height="15" rx="4" fill="#085041"/>
+<rect x="484" y="299" width="223" height="4" fill="#085041"/>
+<text x="595" y="300" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="600" fill="#FFFFFF">robot_localization  (EKF)</text>
+<text x="490" y="309" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Fuses wheel odom + IMU</text>
+<text x="490" y="322" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Input: /odom/unfiltered</text>
+<text x="490" y="335" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Input: /imu/data</text>
+<text x="490" y="348" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Output: /odom (fused)</text>
+<text x="490" y="361" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Covariance tuning (yaml)</text>
+<text x="490" y="374" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">TF: odom→base_footprint</text>
+<text x="490" y="387" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">robot_state_publisher</text>
+<text x="490" y="400" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">joint_state_publisher</text>
+<rect x="715" y="288" width="223" height="126" rx="4" fill="#FFFFFF" stroke="#9FE1CB" stroke-width="0.7"/>
+<rect x="715" y="288" width="223" height="15" rx="4" fill="#085041"/>
+<rect x="715" y="299" width="223" height="4" fill="#085041"/>
+<text x="826" y="300" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="600" fill="#FFFFFF">ROS 2 topic bus</text>
+<text x="721" y="309" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Sub /cmd_vel → micro_ros_agent</text>
+<text x="721" y="322" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Pub /odom ← EKF output</text>
+<text x="721" y="335" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Pub /odom/unfiltered ← ESP32</text>
+<text x="721" y="348" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Pub /imu/data ← ESP32 IMU</text>
+<text x="721" y="361" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">TF2 transform tree</text>
+<text x="721" y="374" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">nav_msgs/Odometry</text>
+<text x="721" y="387" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">sensor_msgs/Imu</text>
+<text x="721" y="400" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">geometry_msgs/Twist</text>
+<rect x="10" y="422" width="940" height="40" rx="0" fill="#F1EFE8" stroke="#D3D1C7" stroke-width="0.7"/>
+<line x1="922" y1="426" x2="922" y2="458" stroke="#C23B1A" stroke-width="2.2" marker-end="url(#arr)"/>
+<text x="918" y="446" text-anchor="end" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="600" fill="#C23B1A">/cmd_vel →</text>
+<line x1="38" y1="458" x2="38" y2="426" stroke="#0A6E56" stroke-width="2.2" marker-end="url(#arr)"/>
+<text x="42" y="446" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="600" fill="#0A6E56">← /odom/unfiltered  ·  /imu/data</text>
+<text x="480" y="437" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="10" font-weight="600" fill="#2C2C2A">USB 2.0 Serial   ·   micro-ROS transport   ·   RPi4 USB-A → ESP32 USB-micro   ·   1 Mbps</text>
+<text x="480" y="451" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#5F5E5A">micro_ros_agent serial bridge   ·   ROS 2 topics tunnelled over UART</text>
+<rect x="10" y="462" width="940" height="156" rx="7" fill="#FAECE7" stroke="#993C1D" stroke-width="1.0"/>
+<rect x="10" y="462" width="940" height="20" rx="7" fill="#993C1D"/>
+<rect x="10" y="475" width="940" height="7" fill="#993C1D"/>
+<text x="480" y="476" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">Tier 3 — Motor Drive Control Layer   ·   ESP32 DevKit C   ·   micro-ROS   ·   linorobot2_hardware firmware</text>
+<rect x="22" y="488" width="223" height="122" rx="4" fill="#FFFFFF" stroke="#F5C4B3" stroke-width="0.7"/>
+<rect x="22" y="488" width="223" height="15" rx="4" fill="#712B13"/>
+<rect x="22" y="499" width="223" height="4" fill="#712B13"/>
+<text x="133" y="500" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="600" fill="#FFFFFF">micro-ROS node  (rcl C++)</text>
+<text x="28" y="509" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">USB serial transport layer</text>
+<text x="28" y="522" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Sub: /cmd_vel (Twist)</text>
+<text x="28" y="535" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Pub: /odom/unfiltered</text>
+<text x="28" y="548" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Pub: /imu/data</text>
+<text x="28" y="561" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">rclc_executor  @ 50 Hz</text>
+<text x="28" y="574" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Watchdog + auto-reconnect</text>
+<text x="28" y="587" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Differential kinematics</text>
+<text x="28" y="600" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">ω_ref_L, ω_ref_R  →  PID</text>
+<rect x="253" y="488" width="223" height="122" rx="4" fill="#FFFFFF" stroke="#F5C4B3" stroke-width="0.7"/>
+<rect x="253" y="488" width="223" height="15" rx="4" fill="#712B13"/>
+<rect x="253" y="499" width="223" height="4" fill="#712B13"/>
+<text x="364" y="500" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="600" fill="#FFFFFF">PID velocity controller</text>
+<text x="259" y="509" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Discrete-time PID (per wheel)</text>
+<text x="259" y="522" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Left wheel loop</text>
+<text x="259" y="535" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Right wheel loop</text>
+<text x="259" y="548" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Setpoint: ω_ref  (rad/s)</text>
+<text x="259" y="561" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Measure: encoder ISR → ω</text>
+<text x="259" y="574" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Output: PWM duty cycle %</text>
+<text x="259" y="587" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">50 Hz update rate</text>
+<text x="259" y="600" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Gains: kp, ki, kd (tunable)</text>
+<rect x="484" y="488" width="223" height="122" rx="4" fill="#FFFFFF" stroke="#F5C4B3" stroke-width="0.7"/>
+<rect x="484" y="488" width="223" height="15" rx="4" fill="#712B13"/>
+<rect x="484" y="499" width="223" height="4" fill="#712B13"/>
+<text x="595" y="500" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="600" fill="#FFFFFF">TB6612FNG HAL driver</text>
+<text x="490" y="509" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">PWM output via LEDC API</text>
+<text x="490" y="522" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">AIN1 / AIN2 direction (M1)</text>
+<text x="490" y="535" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">PWMA duty → M1 speed</text>
+<text x="490" y="548" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">BIN1 / BIN2 direction (M2)</text>
+<text x="490" y="561" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">PWMB duty → M2 speed</text>
+<text x="490" y="574" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">STBY pin enable logic</text>
+<text x="490" y="587" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Fwd / rev / brake / coast</text>
+<text x="490" y="600" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">VM: 11.1 V motor rail</text>
+<rect x="715" y="488" width="223" height="122" rx="4" fill="#FFFFFF" stroke="#F5C4B3" stroke-width="0.7"/>
+<rect x="715" y="488" width="223" height="15" rx="4" fill="#712B13"/>
+<rect x="715" y="499" width="223" height="4" fill="#712B13"/>
+<text x="826" y="500" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="600" fill="#FFFFFF">Encoder ISR</text>
+<text x="721" y="509" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">GPIO interrupt on ENC-A/B</text>
+<text x="721" y="522" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Quadrature decode (4-phase)</text>
+<text x="721" y="535" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Tick accumulator per wheel</text>
+<text x="721" y="548" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Δθ = 2π · Δn / N_CPR</text>
+<text x="721" y="561" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">N_CPR = 11 (output shaft)</text>
+<text x="721" y="574" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Velocity estimate → PID</text>
+<text x="721" y="587" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Publishes /odom/unfiltered</text>
+<text x="721" y="600" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Feeds EKF on RPi4 via USB</text>
+<rect x="10" y="618" width="940" height="38" rx="0" fill="#E6F1FB" stroke="#B5D4F4" stroke-width="0.7"/>
+<line x1="922" y1="622" x2="922" y2="652" stroke="#C23B1A" stroke-width="2.2" marker-end="url(#arr)"/>
+<text x="918" y="641" text-anchor="end" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="600" fill="#C23B1A">PWM →</text>
+<line x1="38" y1="652" x2="38" y2="622" stroke="#0A6E56" stroke-width="2.2" marker-end="url(#arr)"/>
+<text x="42" y="641" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="600" fill="#0A6E56">← ENC A/B</text>
+<text x="480" y="632" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="10" font-weight="600" fill="#0C447C">AIN1/2 · BIN1/2 · PWMA/B (3.3 V logic, GPIO)   ·   ENC-A · ENC-B quadrature (11 CPR)   ·   I²C SDA/SCL (MPU-6050, 0x68)</text>
+<text x="480" y="646" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#0C447C">Motor drive signals from ESP32   ·   Encoder feedback to ESP32   ·   IMU data via I²C</text>
+<rect x="10" y="656" width="940" height="120" rx="7" fill="#E6F1FB" stroke="#185FA5" stroke-width="1.0"/>
+<rect x="10" y="656" width="940" height="20" rx="7" fill="#185FA5"/>
+<rect x="10" y="669" width="940" height="7" fill="#185FA5"/>
+<text x="480" y="670" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">Tier 4 — Physical Actuation &amp; Sensing</text>
+<rect x="22" y="682" width="223" height="86" rx="4" fill="#FFFFFF" stroke="#B5D4F4" stroke-width="0.7"/>
+<rect x="22" y="682" width="223" height="15" rx="4" fill="#0C447C"/>
+<rect x="22" y="693" width="223" height="4" fill="#0C447C"/>
+<text x="133" y="694" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="600" fill="#FFFFFF">M1  —  left wheel</text>
+<text x="28" y="703" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">JGA25-370  ·  12 V rated</text>
+<text x="28" y="716" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">259 RPM @ 11.1 V supply</text>
+<text x="28" y="729" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Quadrature encoder 11 CPR</text>
+<text x="28" y="742" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">4 mm D-shaft  ·  65 mm wheel</text>
+<rect x="253" y="682" width="223" height="86" rx="4" fill="#FFFFFF" stroke="#B5D4F4" stroke-width="0.7"/>
+<rect x="253" y="682" width="223" height="15" rx="4" fill="#0C447C"/>
+<rect x="253" y="693" width="223" height="4" fill="#0C447C"/>
+<text x="364" y="694" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="600" fill="#FFFFFF">M2  —  right wheel</text>
+<text x="259" y="703" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">JGA25-370  ·  12 V rated</text>
+<text x="259" y="716" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">259 RPM @ 11.1 V supply</text>
+<text x="259" y="729" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Quadrature encoder 11 CPR</text>
+<text x="259" y="742" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">4 mm D-shaft  ·  65 mm wheel</text>
+<rect x="484" y="682" width="223" height="86" rx="4" fill="#FFFFFF" stroke="#B5D4F4" stroke-width="0.7"/>
+<rect x="484" y="682" width="223" height="15" rx="4" fill="#0C447C"/>
+<rect x="484" y="693" width="223" height="4" fill="#0C447C"/>
+<text x="595" y="694" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="600" fill="#FFFFFF">TB6612FNG  —  H-bridge</text>
+<text x="490" y="703" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Dual H-bridge motor driver</text>
+<text x="490" y="716" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">VM: 11.1 V  ·  VCC: 3.3 V</text>
+<text x="490" y="729" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">1.2 A cont.  /  3.2 A peak</text>
+<text x="490" y="742" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">AO1/AO2 → M1 · BO1/BO2 → M2</text>
+<rect x="715" y="682" width="223" height="86" rx="4" fill="#FFFFFF" stroke="#B5D4F4" stroke-width="0.7"/>
+<rect x="715" y="682" width="223" height="15" rx="4" fill="#0C447C"/>
+<rect x="715" y="693" width="223" height="4" fill="#0C447C"/>
+<text x="826" y="694" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="600" fill="#FFFFFF">MPU-6050  —  6DOF IMU</text>
+<text x="721" y="703" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">3-axis accel + 3-axis gyro</text>
+<text x="721" y="716" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">I²C addr 0x68  ·  VCC 3.3 V</text>
+<text x="721" y="729" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">SDA/SCL → ESP32 GPIO 21/22</text>
+<text x="721" y="742" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="9" font-weight="400" fill="#1a1a1a">Pub: /imu/data @ 50 Hz</text>
+<line x1="922" y1="220" x2="922" y2="776" stroke="#C23B1A" stroke-width="1.0" stroke-dasharray="4,3"/>
+<line x1="38" y1="656" x2="38" y2="54" stroke="#0A6E56" stroke-width="1.0" stroke-dasharray="4,3"/>
+<rect x="10" y="756" width="940" height="80" rx="5" fill="#F1EFE8" stroke="#D3D1C7" stroke-width="0.6"/>
+<line x1="22" y1="774" x2="52" y2="774" stroke="#C23B1A" stroke-width="2.5"/>
+<polygon points="55,771 61,774 55,777" fill="#C23B1A"/>
+<text x="67" y="778" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="10" font-weight="400" fill="#1a1a1a">Command / control flow  (u_safe → /cmd_vel → PWM → motors)</text>
+<line x1="452" y1="774" x2="482" y2="774" stroke="#0A6E56" stroke-width="2.5"/>
+<polygon points="485,771 491,774 485,777" fill="#0A6E56"/>
+<text x="497" y="778" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="10" font-weight="400" fill="#1a1a1a">Feedback  (encoders → /odom/unfiltered → EKF → /odom → r, v)</text>
+<text x="22" y="798" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="10" font-weight="600" fill="#2C2C2A">Color coding:</text>
+<rect x="110" y="789" width="14" height="12" rx="2" fill="#534AB7" stroke="#534AB7" stroke-width="0.8"/>
+<text x="128" y="799" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="10" font-weight="400" fill="#1a1a1a">Tier 1: Python planning layer (Host PC)</text>
+<rect x="368" y="789" width="14" height="12" rx="2" fill="#0F6E56" stroke="#0F6E56" stroke-width="0.8"/>
+<text x="386" y="799" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="10" font-weight="400" fill="#1a1a1a">Tier 2: ROS 2 motion control (RPi4)</text>
+<rect x="602" y="789" width="14" height="12" rx="2" fill="#993C1D" stroke="#993C1D" stroke-width="0.8"/>
+<text x="620" y="799" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="10" font-weight="400" fill="#1a1a1a">Tier 3: Motor drive firmware (ESP32)</text>
+<rect x="842" y="789" width="14" height="12" rx="2" fill="#185FA5" stroke="#185FA5" stroke-width="0.8"/>
+<text x="860" y="799" text-anchor="start" font-family="-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif" font-size="10" font-weight="400" fill="#1a1a1a">Tier 4: Physical actuation/sensing</text>
+</svg>

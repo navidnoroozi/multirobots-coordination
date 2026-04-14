@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>formation_cosim_mini</name>
+  <version>0.1.0</version>
+  <description>
+    Minimal ROS2 Co-Simulation Platform 1:
+    Python planning layer (planner_node) &lt;--&gt; ROS2 motion controller (motion_controller_node).
+    Both nodes run on the Ubuntu VM as a learning scaffold before the full
+    formation MPC system is ported to ROS2.
+  </description>
+  <maintainer email="navid@example.com">Navid</maintainer>
+  <license>MIT</license>
+
+  <!--
+    ROS2 package dependencies.
+    exec_depend = needed at runtime (not build time, since this is pure Python).
+    These correspond to the ROS2 message packages we import in the Python nodes.
+  -->
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>   <!-- Twist (cmd_vel) -->
+  <exec_depend>nav_msgs</exec_depend>        <!-- Odometry -->
+  <exec_depend>diagnostic_msgs</exec_depend> <!-- DiagnosticArray, DiagnosticStatus -->
+  <exec_depend>std_msgs</exec_depend>        <!-- Header -->
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

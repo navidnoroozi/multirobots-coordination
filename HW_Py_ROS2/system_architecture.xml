@@ -1,0 +1,196 @@
+<svg width="960" height="648" viewBox="0 0 960 648" xmlns="http://www.w3.org/2000/svg" role="img">
+<title>Tier B Mobile Robot — System Architecture</title>
+<desc>Layered system architecture: L0 Infrastructure, L1 Computing (Host PC and RPi4), L2 Embedded control (ESP32), L3 Physical layer (motors, IMU, power)</desc>
+<style>
+.th{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;fill:#1a1a1a;}
+.t {font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;font-size:12px;font-weight:400;fill:#1a1a1a;}
+.ts{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;font-size:11px;font-weight:400;fill:#444441;}
+.tl{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;font-size:10px;font-weight:400;fill:#5f5e5a;}
+.tc{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;font-size:11px;font-weight:500;fill:#1a1a1a;}
+.title{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;fill:#1a1a1a;}
+.sub  {font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;font-size:11px;font-weight:400;fill:#5f5e5a;}
+</style>
+<defs>
+  <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+    <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+  <marker id="arr2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+    <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+</defs>
+<rect width="960" height="648" fill="#FFFFFF"/>
+<text x="480" y="20" text-anchor="middle" class="title">Tier B Mobile Robot — System Architecture</text>
+<text x="480" y="36" text-anchor="middle" class="sub">Systems Engineering view · 4 differential-drive robots · layered · traceable · modular</text>
+<rect x="10" y="46" width="940" height="50" rx="6" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="0.8"/>
+<text x="22" y="62" text-anchor="start" class="tc" fill="#5F5E5A">L0</text>
+<text x="22" y="76" text-anchor="start" class="tl" fill="#5F5E5A">Infrastructure</text>
+<rect x="370" y="52" width="220" height="38" rx="4" fill="#FFFFFF" stroke="#5F5E5A" stroke-width="0.8"/>
+<text x="480" y="67" text-anchor="middle" class="tc" fill="#2C2C2A">Home WiFi Router</text>
+<text x="480" y="81" text-anchor="middle" class="tl" fill="#5F5E5A">IEEE 802.11n/ac · 2.4/5 GHz</text>
+<rect x="10" y="96" width="940" height="24" rx="0" fill="#FAEEDA" stroke="#EF9F27" stroke-width="0.8"/>
+<text x="480" y="112" text-anchor="middle" class="tl" fill="#633806">Physical medium: WiFi 802.11n/ac  ·  TCP/UDP  ·  ZMQ over UDP  ·  ROS 2 DDS multicast</text>
+<line x1="440" y1="90" x2="218" y2="128" stroke="#854F0B" stroke-width="1.5" marker-end="url(#arr)"/>
+<line x1="520" y1="90" x2="690" y2="128" stroke="#854F0B" stroke-width="1.5" marker-end="url(#arr)"/>
+<rect x="10" y="120" width="940" height="188" rx="6" fill="#EEEDFE" stroke="#AFA9EC" stroke-width="0.8"/>
+<text x="22" y="136" text-anchor="start" class="tc" fill="#534AB7">L1</text>
+<text x="22" y="150" text-anchor="start" class="tl" fill="#534AB7">Computing</text>
+<rect x="55" y="127" width="387" height="174" rx="5" fill="#CECBF6" stroke="#534AB7" stroke-width="0.8"/>
+<text x="248" y="142" text-anchor="middle" class="tc" fill="#3C3489">Host PC  ·  Ubuntu 22.04  ·  ROS 2 Humble  ·  Python 3.12</text>
+<rect x="63" y="150" width="178" height="143" rx="4" fill="#FFFFFF" stroke="#534AB7" stroke-width="0.8"/>
+<rect x="63" y="150" width="178" height="16" rx="4" fill="#534AB7" stroke="#534AB7" stroke-width="0.8"/>
+<text x="152" y="161" text-anchor="middle" class="tl" fill="#FFFFFF">Python planning layer</text>
+<text x="152" y="180" text-anchor="middle" class="tl" fill="#3C3489">coordinator_node.py</text>
+<text x="152" y="197" text-anchor="middle" class="tl" fill="#3C3489">controller_node.py × 4</text>
+<text x="152" y="214" text-anchor="middle" class="tl" fill="#3C3489">cosim_manager.py</text>
+<text x="152" y="231" text-anchor="middle" class="tl" fill="#3C3489">hybrid safety filter</text>
+<text x="152" y="248" text-anchor="middle" class="tl" fill="#3C3489">ZMQ REQ/REP mesh</text>
+<text x="152" y="265" text-anchor="middle" class="tl" fill="#3C3489">matlab.engine (opt.)</text>
+<rect x="248" y="150" width="186" height="143" rx="4" fill="#FFFFFF" stroke="#534AB7" stroke-width="0.8"/>
+<rect x="248" y="150" width="186" height="16" rx="4" fill="#534AB7" stroke="#534AB7" stroke-width="0.8"/>
+<text x="341" y="161" text-anchor="middle" class="tl" fill="#FFFFFF">Co-simulation bridge layer</text>
+<text x="341" y="180" text-anchor="middle" class="tl" fill="#3C3489">cosim_config.py</text>
+<text x="341" y="197" text-anchor="middle" class="tl" fill="#3C3489">cosim_bridge.py</text>
+<text x="341" y="214" text-anchor="middle" class="tl" fill="#3C3489">cosim_logger.py</text>
+<text x="341" y="231" text-anchor="middle" class="tl" fill="#3C3489">matlab.engine API</text>
+<text x="341" y="248" text-anchor="middle" class="tl" fill="#3C3489">4× CSV log streams</text>
+<text x="341" y="265" text-anchor="middle" class="tl" fill="#3C3489">MATLAB/Simulink (opt.)</text>
+<text x="480" y="195" text-anchor="middle" class="tl" fill="#633806">WiFi 802.11n</text>
+<line x1="443" y1="210" x2="517" y2="210" stroke="#993C1D" stroke-width="1.5" marker-end="url(#arr)"/>
+<text x="480" y="207" text-anchor="middle" class="tl" fill="#712B13">u_safe (ZMQ)</text>
+<line x1="518" y1="235" x2="443" y2="235" stroke="#0F6E56" stroke-width="1.5" marker-end="url(#arr)"/>
+<text x="480" y="232" text-anchor="middle" class="tl" fill="#085041">r, v (ZMQ)</text>
+<text x="480" y="260" text-anchor="middle" class="tl" fill="#854F0B">TCP/UDP</text>
+<text x="480" y="273" text-anchor="middle" class="tl" fill="#854F0B">ZMQ REQ/REP</text>
+<rect x="518" y="127" width="424" height="174" rx="5" fill="#9FE1CB" stroke="#0F6E56" stroke-width="0.8"/>
+<text x="730" y="142" text-anchor="middle" class="tc" fill="#085041">Raspberry Pi 4B × 4  ·  Ubuntu 22.04  ·  ROS 2 Humble</text>
+<rect x="526" y="150" width="180" height="143" rx="4" fill="#FFFFFF" stroke="#0F6E56" stroke-width="0.8"/>
+<rect x="526" y="150" width="180" height="16" rx="4" fill="#0F6E56" stroke="#0F6E56" stroke-width="0.8"/>
+<text x="616" y="161" text-anchor="middle" class="tl" fill="#FFFFFF">Motion control layer</text>
+<text x="616" y="180" text-anchor="middle" class="tl" fill="#085041">robot_agent.py</text>
+<text x="616" y="197" text-anchor="middle" class="tl" fill="#085041">ZMQ ↔ ROS 2 bridge</text>
+<text x="616" y="214" text-anchor="middle" class="tl" fill="#085041">micro_ros_agent</text>
+<text x="616" y="231" text-anchor="middle" class="tl" fill="#085041">ROS2 pub: /cmd_vel</text>
+<text x="616" y="248" text-anchor="middle" class="tl" fill="#085041">ROS2 sub: /odom</text>
+<text x="616" y="265" text-anchor="middle" class="tl" fill="#085041">ROS2 sub: /imu/data</text>
+<rect x="716" y="150" width="218" height="143" rx="4" fill="#FFFFFF" stroke="#0F6E56" stroke-width="0.8"/>
+<rect x="716" y="150" width="218" height="16" rx="4" fill="#0F6E56" stroke="#0F6E56" stroke-width="0.8"/>
+<text x="825" y="161" text-anchor="middle" class="tl" fill="#FFFFFF">ROS 2 interfaces</text>
+<text x="825" y="180" text-anchor="middle" class="tl" fill="#085041">/cmd_vel  geometry_msgs/Twist</text>
+<text x="825" y="197" text-anchor="middle" class="tl" fill="#085041">/odom  nav_msgs/Odometry</text>
+<text x="825" y="214" text-anchor="middle" class="tl" fill="#085041">/odom/unfiltered  (raw wheel)</text>
+<text x="825" y="231" text-anchor="middle" class="tl" fill="#085041">/imu/data  sensor_msgs/Imu</text>
+<text x="825" y="248" text-anchor="middle" class="tl" fill="#085041">TF: odom → base_footprint</text>
+<text x="825" y="265" text-anchor="middle" class="tl" fill="#085041">ROS2 DDS (local, per robot)</text>
+<rect x="10" y="308" width="940" height="24" rx="0" fill="#F1EFE8" stroke="#B4B2A9" stroke-width="0.8"/>
+<text x="480" y="324" text-anchor="middle" class="tl" fill="#5F5E5A">Interface: USB 2.0 · micro-ROS serial agent · 1 Mbps · per robot (RPi4 USB-A → ESP32 USB micro)</text>
+<line x1="730" y1="308" x2="730" y2="332" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arr)"/>
+<rect x="10" y="332" width="940" height="126" rx="6" fill="#FAECE7" stroke="#F0997B" stroke-width="0.8"/>
+<text x="22" y="348" text-anchor="start" class="tc" fill="#993C1D">L2</text>
+<text x="22" y="362" text-anchor="start" class="tl" fill="#993C1D">Embedded</text>
+<text x="22" y="376" text-anchor="start" class="tl" fill="#993C1D">control</text>
+<rect x="55" y="340" width="388" height="110" rx="4" fill="#FFFFFF" stroke="#F0997B" stroke-width="0.8"/>
+<rect x="55" y="340" width="388" height="16" rx="4" fill="#F0997B" stroke="#F0997B" stroke-width="0.8"/>
+<text x="249" y="351" text-anchor="middle" class="tl" fill="#712B13">Power distribution (per robot)</text>
+<text x="249" y="372" text-anchor="middle" class="tl" fill="#712B13">BAT1: Tattu 3S LiPo 11.1 V · 2300 mAh · XT60 connector</text>
+<text x="249" y="387" text-anchor="middle" class="tl" fill="#712B13">F1:   5 A automotive blade fuse (inline, before switch)</text>
+<text x="249" y="402" text-anchor="middle" class="tl" fill="#712B13">SW1:  SPST 2-pin toggle switch (main power disconnect)</text>
+<text x="249" y="417" text-anchor="middle" class="tl" fill="#712B13">U1:   DC-DC Buck 7–35 V → 5 V / 3 A USB-C (powers RPi4)</text>
+<text x="249" y="432" text-anchor="middle" class="tl" fill="#712B13">U2:   TB6612FNG VM ← 11.1 V  (motor supply rail)</text>
+<text x="249" y="447" text-anchor="middle" class="tl" fill="#712B13">U4:   ESP32 VCC 3.3 V ← ESP32 onboard LDO</text>
+<rect x="518" y="340" width="424" height="110" rx="5" fill="#F5C4B3" stroke="#993C1D" stroke-width="0.8"/>
+<text x="730" y="354" text-anchor="middle" class="tc" fill="#712B13">ESP32 DevKit C × 4  ·  micro-ROS  ·  linorobot2_hardware firmware</text>
+<rect x="526" y="362" width="160" height="80" rx="4" fill="#FFFFFF" stroke="#993C1D" stroke-width="0.8"/>
+<rect x="526" y="362" width="160" height="15" rx="4" fill="#993C1D" stroke="#993C1D" stroke-width="0.8"/>
+<text x="606" y="372" text-anchor="middle" class="tl" fill="#FFFFFF">micro-ROS node</text>
+<text x="606" y="386" text-anchor="middle" class="tl" fill="#712B13">Sub: /cmd_vel</text>
+<text x="606" y="400" text-anchor="middle" class="tl" fill="#712B13">Pub: /odom/unfiltered</text>
+<text x="606" y="414" text-anchor="middle" class="tl" fill="#712B13">Pub: /imu/data</text>
+<text x="606" y="428" text-anchor="middle" class="tl" fill="#712B13">USB serial transport</text>
+<rect x="696" y="362" width="140" height="80" rx="4" fill="#FFFFFF" stroke="#993C1D" stroke-width="0.8"/>
+<rect x="696" y="362" width="140" height="15" rx="4" fill="#993C1D" stroke="#993C1D" stroke-width="0.8"/>
+<text x="766" y="372" text-anchor="middle" class="tl" fill="#FFFFFF">PID velocity ctrl</text>
+<text x="766" y="386" text-anchor="middle" class="tl" fill="#712B13">Left wheel PID</text>
+<text x="766" y="400" text-anchor="middle" class="tl" fill="#712B13">Right wheel PID</text>
+<text x="766" y="414" text-anchor="middle" class="tl" fill="#712B13">50 Hz control loop</text>
+<text x="766" y="428" text-anchor="middle" class="tl" fill="#712B13">Wheel kinematics</text>
+<rect x="846" y="362" width="88" height="80" rx="4" fill="#FFFFFF" stroke="#993C1D" stroke-width="0.8"/>
+<rect x="846" y="362" width="88" height="15" rx="4" fill="#993C1D" stroke="#993C1D" stroke-width="0.8"/>
+<text x="890" y="372" text-anchor="middle" class="tl" fill="#FFFFFF">Driver + ISR</text>
+<text x="890" y="386" text-anchor="middle" class="tl" fill="#712B13">TB6612FNG</text>
+<text x="890" y="400" text-anchor="middle" class="tl" fill="#712B13">Encoder ISR</text>
+<text x="890" y="414" text-anchor="middle" class="tl" fill="#712B13">11 CPR/rev</text>
+<text x="890" y="428" text-anchor="middle" class="tl" fill="#712B13">MPU-6050 I²C</text>
+<rect x="10" y="458" width="940" height="22" rx="0" fill="#E6F1FB" stroke="#85B7EB" stroke-width="0.8"/>
+<text x="480" y="473" text-anchor="middle" class="tl" fill="#0C447C">Interface: PWM/GPIO (AIN1/2·BIN1/2·PWMA/B) · Encoder A/B quadrature signals · I²C SDA/SCL · DC motor wires</text>
+<line x1="730" y1="458" x2="730" y2="480" stroke="#185FA5" stroke-width="1.5" marker-end="url(#arr)"/>
+<rect x="10" y="480" width="940" height="158" rx="6" fill="#E6F1FB" stroke="#B5D4F4" stroke-width="0.8"/>
+<text x="22" y="496" text-anchor="start" class="tc" fill="#185FA5">L3</text>
+<text x="22" y="510" text-anchor="start" class="tl" fill="#185FA5">Physical</text>
+<text x="22" y="524" text-anchor="start" class="tl" fill="#185FA5">actuation</text>
+<rect x="55" y="488" width="175" height="140" rx="4" fill="#FFFFFF" stroke="#85B7EB" stroke-width="0.8"/>
+<rect x="55" y="488" width="175" height="15" rx="4" fill="#85B7EB" stroke="#85B7EB" stroke-width="0.8"/>
+<text x="142" y="498" text-anchor="middle" class="tl" fill="#0C447C">U5 — MPU-6050 GY-521</text>
+<text x="142" y="512" text-anchor="middle" class="tl" fill="#0C447C">6DOF IMU (3-axis accel + gyro)</text>
+<text x="142" y="526" text-anchor="middle" class="tl" fill="#0C447C">I²C addr: 0x68</text>
+<text x="142" y="540" text-anchor="middle" class="tl" fill="#0C447C">VCC: 3.3 V (from ESP32)</text>
+<text x="142" y="554" text-anchor="middle" class="tl" fill="#0C447C">SDA → GPIO 21  SCL → GPIO 22</text>
+<text x="142" y="568" text-anchor="middle" class="tl" fill="#0C447C">Publishes /imu/data @ 50 Hz</text>
+<rect x="240" y="488" width="256" height="140" rx="4" fill="#FFFFFF" stroke="#85B7EB" stroke-width="0.8"/>
+<rect x="240" y="488" width="256" height="15" rx="4" fill="#85B7EB" stroke="#85B7EB" stroke-width="0.8"/>
+<text x="368" y="498" text-anchor="middle" class="tl" fill="#0C447C">Mechanical (per robot)</text>
+<text x="368" y="512" text-anchor="middle" class="tl" fill="#0C447C">2WD chassis · acrylic/aluminium plate</text>
+<text x="368" y="526" text-anchor="middle" class="tl" fill="#0C447C">JGA25-370 motor mounts (25 mm body)</text>
+<text x="368" y="540" text-anchor="middle" class="tl" fill="#0C447C">65 mm wheels × 2 (driven)</text>
+<text x="368" y="554" text-anchor="middle" class="tl" fill="#0C447C">19 mm Pololu ball caster (rear passive)</text>
+<text x="368" y="568" text-anchor="middle" class="tl" fill="#0C447C">Wheelbase ≈ 160 mm</text>
+<rect x="518" y="488" width="140" height="68" rx="4" fill="#FFFFFF" stroke="#185FA5" stroke-width="0.8"/>
+<rect x="518" y="488" width="140" height="15" rx="4" fill="#185FA5" stroke="#185FA5" stroke-width="0.8"/>
+<text x="588" y="498" text-anchor="middle" class="tl" fill="#FFFFFF">U2 — TB6612FNG</text>
+<text x="588" y="512" text-anchor="middle" class="tl" fill="#0C447C">Dual H-bridge driver</text>
+<text x="588" y="526" text-anchor="middle" class="tl" fill="#0C447C">VM: 11.1 V (motor rail)</text>
+<text x="588" y="540" text-anchor="middle" class="tl" fill="#0C447C">1.2 A cont. / 3.2 A peak</text>
+<text x="588" y="554" text-anchor="middle" class="tl" fill="#0C447C">VCC logic: 3.3 V</text>
+<rect x="668" y="488" width="120" height="68" rx="4" fill="#FFFFFF" stroke="#185FA5" stroke-width="0.8"/>
+<rect x="668" y="488" width="120" height="15" rx="4" fill="#185FA5" stroke="#185FA5" stroke-width="0.8"/>
+<text x="728" y="498" text-anchor="middle" class="tl" fill="#FFFFFF">M1 — left wheel</text>
+<text x="728" y="512" text-anchor="middle" class="tl" fill="#0C447C">JGA25-370 · 12 V</text>
+<text x="728" y="526" text-anchor="middle" class="tl" fill="#0C447C">280 RPM (at 11.1 V: 259)</text>
+<text x="728" y="540" text-anchor="middle" class="tl" fill="#0C447C">Quad encoder 11 CPR</text>
+<text x="728" y="554" text-anchor="middle" class="tl" fill="#0C447C">4 mm D-shaft</text>
+<rect x="798" y="488" width="120" height="68" rx="4" fill="#FFFFFF" stroke="#185FA5" stroke-width="0.8"/>
+<rect x="798" y="488" width="120" height="15" rx="4" fill="#185FA5" stroke="#185FA5" stroke-width="0.8"/>
+<text x="858" y="498" text-anchor="middle" class="tl" fill="#FFFFFF">M2 — right wheel</text>
+<text x="858" y="512" text-anchor="middle" class="tl" fill="#0C447C">JGA25-370 · 12 V</text>
+<text x="858" y="526" text-anchor="middle" class="tl" fill="#0C447C">280 RPM (at 11.1 V: 259)</text>
+<text x="858" y="540" text-anchor="middle" class="tl" fill="#0C447C">Quad encoder 11 CPR</text>
+<text x="858" y="554" text-anchor="middle" class="tl" fill="#0C447C">4 mm D-shaft</text>
+<rect x="518" y="566" width="100" height="62" rx="4" fill="#FFFFFF" stroke="#993C1D" stroke-width="0.8"/>
+<rect x="518" y="566" width="100" height="14" rx="4" fill="#993C1D" stroke="#993C1D" stroke-width="0.8"/>
+<text x="568" y="575" text-anchor="middle" class="tl" fill="#FFFFFF">BAT1 · 3S LiPo</text>
+<text x="568" y="588" text-anchor="middle" class="tl" fill="#712B13">11.1 V · 2300 mAh</text>
+<text x="568" y="602" text-anchor="middle" class="tl" fill="#712B13">XT60 · 45C</text>
+<text x="568" y="616" text-anchor="middle" class="tl" fill="#712B13">~2 h runtime</text>
+<rect x="628" y="566" width="100" height="62" rx="4" fill="#FFFFFF" stroke="#993C1D" stroke-width="0.8"/>
+<rect x="628" y="566" width="100" height="14" rx="4" fill="#993C1D" stroke="#993C1D" stroke-width="0.8"/>
+<text x="678" y="575" text-anchor="middle" class="tl" fill="#FFFFFF">F1 · SW1</text>
+<text x="678" y="588" text-anchor="middle" class="tl" fill="#712B13">5 A blade fuse</text>
+<text x="678" y="602" text-anchor="middle" class="tl" fill="#712B13">SPST 2-pin switch</text>
+<text x="678" y="616" text-anchor="middle" class="tl" fill="#712B13">Main disconnect</text>
+<rect x="738" y="566" width="110" height="62" rx="4" fill="#FFFFFF" stroke="#854F0B" stroke-width="0.8"/>
+<rect x="738" y="566" width="110" height="14" rx="4" fill="#854F0B" stroke="#854F0B" stroke-width="0.8"/>
+<text x="793" y="575" text-anchor="middle" class="tl" fill="#FFFFFF">U1 · Buck conv.</text>
+<text x="793" y="588" text-anchor="middle" class="tl" fill="#633806">7–35 V → 5 V / 3 A</text>
+<text x="793" y="602" text-anchor="middle" class="tl" fill="#633806">USB-C out → RPi4</text>
+<text x="793" y="616" text-anchor="middle" class="tl" fill="#633806">Bauer Electronics</text>
+<rect x="858" y="566" width="80" height="62" rx="4" fill="#FFFFFF" stroke="#0F6E56" stroke-width="0.8"/>
+<rect x="858" y="566" width="80" height="14" rx="4" fill="#0F6E56" stroke="#0F6E56" stroke-width="0.8"/>
+<text x="898" y="575" text-anchor="middle" class="tl" fill="#FFFFFF">U3 · RPi 4B</text>
+<text x="898" y="588" text-anchor="middle" class="tl" fill="#085041">5 V USB-C in</text>
+<text x="898" y="602" text-anchor="middle" class="tl" fill="#085041">Ubuntu 22.04</text>
+<text x="898" y="616" text-anchor="middle" class="tl" fill="#085041">64-bit ARM</text>
+<line x1="618" y1="597" x2="627" y2="597" stroke="#993C1D" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="728" y1="597" x2="737" y2="597" stroke="#993C1D" stroke-width="1.2" marker-end="url(#arr)"/>
+<line x1="848" y1="597" x2="857" y2="597" stroke="#854F0B" stroke-width="1.2" marker-end="url(#arr)"/>
+<rect x="518" y="488" width="420" height="140" rx="6" fill="none" stroke="#0F6E56" stroke-width="2"/>
+<text x="940" y="484" text-anchor="end" class="tc" fill="#0F6E56">× 4 robots (identical)</text>
+</svg>

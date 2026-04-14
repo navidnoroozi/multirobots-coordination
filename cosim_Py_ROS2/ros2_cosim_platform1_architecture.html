@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ROS2 Co-Simulation Platform 1 — Architecture</title>
+<style>
+  body {
+    margin: 0; padding: 24px;
+    font-family: system-ui, sans-serif;
+    background: #ffffff;
+    color: #1a1a1a;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { background: #1a1a1a; color: #e0e0e0; }
+    .box-bg  { fill: #2a2a2a; }
+    .box-str { stroke: #444; }
+    .row-bg  { fill: #222; }
+    .col-sep { stroke: #333; }
+    .vm-dash { stroke: #444; }
+    .hdr-bg  { fill: #2e2e2e; }
+    text.secondary { fill: #9a9a9a; }
+    text.primary   { fill: #e0e0e0; }
+  }
+  @media (prefers-color-scheme: light) {
+    .box-bg  { fill: #f8f8f6; }
+    .box-str { stroke: #d0d0cc; }
+    .row-bg  { fill: #f4f4f1; }
+    .col-sep { stroke: #e0e0dc; }
+    .vm-dash { stroke: #c0c0bc; }
+    .hdr-bg  { fill: #eaeae6; }
+    text.secondary { fill: #666660; }
+    text.primary   { fill: #1a1a1a; }
+  }
+  svg { display: block; max-width: 900px; margin: 0 auto; }
+  h1  { text-align: center; font-size: 15px; font-weight: 500;
+        max-width: 900px; margin: 0 auto 16px; opacity: 0.7; }
+</style>
+</head>
+<body>
+<h1>ROS2 Co-Simulation Platform 1 (Mini) — Node &amp; Topic Architecture</h1>
+<svg width="100%" viewBox="0 0 680 620" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>ROS2 Co-Simulation Platform 1 — Mini Architecture</title>
+<desc>Two ROS2 nodes on Ubuntu VM: planner_node and motion_controller_node, communicating over three topics: /cmd_vel, /odom, and /diagnostics.</desc>
+<defs>
+  <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+</defs>
+
+<!-- Ubuntu VM outer container -->
+<rect x="20" y="16" width="640" height="590" rx="16" fill="none" class="vm-dash" stroke-width="1" stroke-dasharray="6 3"/>
+<text font-size="11" font-family="system-ui,sans-serif" x="40" y="36" class="secondary">Ubuntu 22.04 VM — ROS2 Humble Desktop — same machine, shared memory DDS</text>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- PLANNER NODE (left)                           -->
+<!-- ══════════════════════════════════════════════ -->
+<!-- outer box -->
+<rect x="40" y="55" width="230" height="300" rx="12" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+<!-- header fill -->
+<rect x="40" y="55" width="230" height="28" rx="12" fill="#534AB7"/>
+<rect x="40" y="69"  width="230" height="14" fill="#534AB7"/>
+<text font-size="13" font-weight="500" font-family="system-ui,sans-serif" x="155" y="73" text-anchor="middle" fill="#EEEDFE">planner_node.py</text>
+<text font-size="11" font-family="system-ui,sans-serif" x="155" y="91" text-anchor="middle" fill="#3C3489">Python planning layer</text>
+
+<!-- internals -->
+<rect x="56" y="104" width="198" height="36" rx="6" class="box-bg box-str" stroke-width="0.5"/>
+<text font-size="10" font-family="system-ui,sans-serif" x="155" y="118" text-anchor="middle" class="secondary">Publisher</text>
+<text font-size="12" font-weight="500" font-family="system-ui,sans-serif" x="155" y="133" text-anchor="middle" class="primary">/cmd_vel  →  Twist</text>
+
+<rect x="56" y="152" width="198" height="36" rx="6" class="box-bg box-str" stroke-width="0.5"/>
+<text font-size="10" font-family="system-ui,sans-serif" x="155" y="166" text-anchor="middle" class="secondary">Subscriber</text>
+<text font-size="12" font-weight="500" font-family="system-ui,sans-serif" x="155" y="181" text-anchor="middle" class="primary">/odom  ←  Odometry</text>
+
+<rect x="56" y="200" width="198" height="36" rx="6" class="box-bg box-str" stroke-width="0.5"/>
+<text font-size="10" font-family="system-ui,sans-serif" x="155" y="214" text-anchor="middle" class="secondary">Subscriber</text>
+<text font-size="12" font-weight="500" font-family="system-ui,sans-serif" x="155" y="229" text-anchor="middle" class="primary">/diagnostics  ←  Array</text>
+
+<rect x="56" y="248" width="198" height="36" rx="6" class="box-bg box-str" stroke-width="0.5"/>
+<text font-size="10" font-family="system-ui,sans-serif" x="155" y="262" text-anchor="middle" class="secondary">Timer @ 5 Hz</text>
+<text font-size="12" font-weight="500" font-family="system-ui,sans-serif" x="155" y="277" text-anchor="middle" class="primary">_planning_step()</text>
+
+<rect x="56" y="296" width="198" height="44" rx="6" class="box-bg box-str" stroke-width="0.5"/>
+<text font-size="10" font-family="system-ui,sans-serif" x="155" y="313" text-anchor="middle" class="secondary">Executor</text>
+<text font-size="12" font-weight="500" font-family="system-ui,sans-serif" x="155" y="328" text-anchor="middle" class="primary">MultiThreadedExecutor</text>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- TOPIC ARROWS (centre)                         -->
+<!-- ══════════════════════════════════════════════ -->
+
+<!-- /cmd_vel -->
+<rect x="260" y="100" width="160" height="50" rx="8" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.8"/>
+<text font-size="13" font-weight="500" font-family="system-ui,sans-serif" x="340" y="120" text-anchor="middle" fill="#185FA5">/cmd_vel</text>
+<text font-size="10" font-family="system-ui,sans-serif" x="340" y="137" text-anchor="middle" fill="#185FA5">geometry_msgs/Twist</text>
+<line x1="238" y1="125" x2="258" y2="125" stroke="#185FA5" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="420" y1="125" x2="440" y2="125" stroke="#185FA5" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+<!-- /odom -->
+<rect x="260" y="200" width="160" height="50" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.8"/>
+<text font-size="13" font-weight="500" font-family="system-ui,sans-serif" x="340" y="220" text-anchor="middle" fill="#085041">/odom</text>
+<text font-size="10" font-family="system-ui,sans-serif" x="340" y="237" text-anchor="middle" fill="#085041">nav_msgs/Odometry</text>
+<line x1="440" y1="225" x2="420" y2="225" stroke="#0F6E56" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="260" y1="225" x2="240" y2="225" stroke="#0F6E56" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+<!-- /diagnostics -->
+<rect x="260" y="300" width="160" height="50" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.8"/>
+<text font-size="13" font-weight="500" font-family="system-ui,sans-serif" x="340" y="320" text-anchor="middle" fill="#633806">/diagnostics</text>
+<text font-size="10" font-family="system-ui,sans-serif" x="340" y="337" text-anchor="middle" fill="#633806">DiagnosticArray</text>
+<line x1="440" y1="325" x2="420" y2="325" stroke="#854F0B" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="260" y1="325" x2="240" y2="325" stroke="#854F0B" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- MOTION CONTROLLER NODE (right)                -->
+<!-- ══════════════════════════════════════════════ -->
+<rect x="440" y="55" width="200" height="300" rx="12" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<rect x="440" y="55" width="200" height="28" rx="12" fill="#0F6E56"/>
+<rect x="440" y="69"  width="200" height="14" fill="#0F6E56"/>
+<text font-size="11" font-weight="500" font-family="system-ui,sans-serif" x="540" y="73" text-anchor="middle" fill="#E1F5EE">motion_controller_node.py</text>
+<text font-size="11" font-family="system-ui,sans-serif" x="540" y="91" text-anchor="middle" fill="#085041">ROS2 motion control layer</text>
+
+<rect x="456" y="104" width="168" height="36" rx="6" class="box-bg box-str" stroke-width="0.5"/>
+<text font-size="10" font-family="system-ui,sans-serif" x="540" y="118" text-anchor="middle" class="secondary">Subscriber</text>
+<text font-size="12" font-weight="500" font-family="system-ui,sans-serif" x="540" y="133" text-anchor="middle" class="primary">/cmd_vel  →  v, ω</text>
+
+<rect x="456" y="152" width="168" height="36" rx="6" class="box-bg box-str" stroke-width="0.5"/>
+<text font-size="10" font-family="system-ui,sans-serif" x="540" y="166" text-anchor="middle" class="secondary">Publisher</text>
+<text font-size="12" font-weight="500" font-family="system-ui,sans-serif" x="540" y="181" text-anchor="middle" class="primary">/odom  ←  pose</text>
+
+<rect x="456" y="200" width="168" height="36" rx="6" class="box-bg box-str" stroke-width="0.5"/>
+<text font-size="10" font-family="system-ui,sans-serif" x="540" y="214" text-anchor="middle" class="secondary">Publisher @ 1 Hz</text>
+<text font-size="12" font-weight="500" font-family="system-ui,sans-serif" x="540" y="229" text-anchor="middle" class="primary">/diagnostics</text>
+
+<rect x="456" y="248" width="168" height="36" rx="6" class="box-bg box-str" stroke-width="0.5"/>
+<text font-size="10" font-family="system-ui,sans-serif" x="540" y="262" text-anchor="middle" class="secondary">Timer @ 20 Hz</text>
+<text font-size="12" font-weight="500" font-family="system-ui,sans-serif" x="540" y="277" text-anchor="middle" class="primary">simulation_step()</text>
+
+<rect x="456" y="296" width="168" height="44" rx="6" class="box-bg box-str" stroke-width="0.5"/>
+<text font-size="10" font-family="system-ui,sans-serif" x="540" y="311" text-anchor="middle" class="secondary">Unicycle kinematics</text>
+<text font-size="10" font-family="system-ui,sans-serif" x="540" y="326" text-anchor="middle" class="secondary">x += v·cos(θ)·dt</text>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- ANALOGY TABLE (bottom)                        -->
+<!-- ══════════════════════════════════════════════ -->
+<rect x="32" y="380" width="616" height="216" rx="10" class="row-bg box-str" stroke-width="0.5"/>
+<rect x="32" y="380" width="616" height="26"  rx="10" class="hdr-bg"/>
+<rect x="32" y="392" width="616" height="14"       class="hdr-bg"/>
+<text font-size="12" font-weight="500" font-family="system-ui,sans-serif" x="340" y="397" text-anchor="middle" class="primary">Analogy with your MATLAB co-simulation</text>
+
+<text font-size="11" font-weight="500" font-family="system-ui,sans-serif" x="135" y="423" text-anchor="middle" class="secondary">MATLAB platform</text>
+<line x1="270" y1="410" x2="270" y2="590" class="col-sep" stroke-width="0.5"/>
+<text font-size="11" font-weight="500" font-family="system-ui,sans-serif" x="400" y="423" text-anchor="middle" class="secondary">This ROS2 mini platform</text>
+<line x1="530" y1="410" x2="530" y2="590" class="col-sep" stroke-width="0.5"/>
+<text font-size="11" font-weight="500" font-family="system-ui,sans-serif" x="600" y="423" text-anchor="middle" class="secondary">Concept</text>
+<line x1="32" y1="430" x2="648" y2="430" class="col-sep" stroke-width="0.5"/>
+
+<text font-size="11" font-family="system-ui,sans-serif" x="48"  y="450" class="primary">coordinator_node.py</text>
+<text font-size="11" font-family="system-ui,sans-serif" x="280" y="450" class="primary">planner_node.py</text>
+<text font-size="11" font-family="system-ui,sans-serif" x="540" y="450" class="secondary">Planning layer</text>
+<line x1="32" y1="458" x2="648" y2="458" class="col-sep" stroke-width="0.5"/>
+
+<text font-size="11" font-family="system-ui,sans-serif" x="48"  y="478" class="primary">MATLAB Engine + ZMQ</text>
+<text font-size="11" font-family="system-ui,sans-serif" x="280" y="478" class="primary">ROS2 DDS topics</text>
+<text font-size="11" font-family="system-ui,sans-serif" x="540" y="478" class="secondary">Transport</text>
+<line x1="32" y1="486" x2="648" y2="486" class="col-sep" stroke-width="0.5"/>
+
+<text font-size="11" font-family="system-ui,sans-serif" x="48"  y="506" class="primary">Simulink unicycle model</text>
+<text font-size="11" font-family="system-ui,sans-serif" x="280" y="506" class="primary">motion_controller_node</text>
+<text font-size="11" font-family="system-ui,sans-serif" x="540" y="506" class="secondary">Plant model</text>
+<line x1="32" y1="514" x2="648" y2="514" class="col-sep" stroke-width="0.5"/>
+
+<text font-size="11" font-family="system-ui,sans-serif" x="48"  y="534" class="primary">cosim_bridge.py loop</text>
+<text font-size="11" font-family="system-ui,sans-serif" x="280" y="534" class="primary">rclpy.spin() executor</text>
+<text font-size="11" font-family="system-ui,sans-serif" x="540" y="534" class="secondary">Event loop</text>
+<line x1="32" y1="542" x2="648" y2="542" class="col-sep" stroke-width="0.5"/>
+
+<text font-size="11" font-family="system-ui,sans-serif" x="48"  y="562" class="primary">u_ref / odom via engine</text>
+<text font-size="11" font-family="system-ui,sans-serif" x="280" y="562" class="primary">Twist / Odometry msgs</text>
+<text font-size="11" font-family="system-ui,sans-serif" x="540" y="562" class="secondary">Interface types</text>
+<line x1="32" y1="570" x2="648" y2="570" class="col-sep" stroke-width="0.5"/>
+
+<text font-size="11" font-family="system-ui,sans-serif" x="48"  y="590" class="primary">CSV logger</text>
+<text font-size="11" font-family="system-ui,sans-serif" x="280" y="590" class="primary">ros2 topic echo / rqt</text>
+<text font-size="11" font-family="system-ui,sans-serif" x="540" y="590" class="secondary">Logging / inspection</text>
+</svg>
+</body>
+</html>

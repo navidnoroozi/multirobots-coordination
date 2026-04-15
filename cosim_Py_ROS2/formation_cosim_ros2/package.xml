@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>formation_cosim_ros2</name>
+  <version>1.0.0</version>
+  <description>
+    Full ROS2 Co-Simulation Platform 1:
+    Python hybrid MPC formation controller (ZMQ) connected to N simulated
+    unicycle robots via ROS2 topics. Replaces plant_node.py with two ROS2 nodes:
+      unicycle_fleet_node  — N differential-drive robots simulated at 20 Hz
+      formation_planner_node — ZMQ bridge + MPC orchestration + CSV logging
+    coordinator_node.py and controller_node.py × N are unchanged.
+  </description>
+  <maintainer email="navid@example.com">Navid</maintainer>
+  <license>MIT</license>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>    <!-- Twist (/robot_N/cmd_vel) -->
+  <exec_depend>nav_msgs</exec_depend>         <!-- Odometry (/robot_N/odom) -->
+  <exec_depend>diagnostic_msgs</exec_depend>  <!-- DiagnosticArray -->
+  <exec_depend>std_msgs</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

@@ -116,6 +116,10 @@ class PlannerNode(Node):
         )
 
         # ── Planning timer at 5 Hz ──────────────────────────────────────────
+        # The timer calls the _planning_step function every self._planning_dt seconds.
+        # This is where your MPC controller would be called in the full system.
+        # create_timer(, , callback_group)
+        # - callback_group=self._cb_group allows the timer callback to run concurrently with the subscribers.
         self.planning_timer = self.create_timer(
             self._planning_dt,
             self._planning_step,

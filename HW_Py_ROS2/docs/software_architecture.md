@@ -1,5 +1,7 @@
 # The System Architecture:
 
+```
+Ubuntu VM
 Home WiFi router (2.4 GHz, dedicated SSID recommended)
         │
         │  UDP/TCP/ZMQ over WiFi
@@ -21,7 +23,7 @@ Robot 1 (RPi4)          Robot 2 (RPi4)        Robot 3 (RPi4)       Robot 4 (RPi4
     ├── encoder ISR          ├── encoder ISR
     ├── PID velocity ctrl    ├── PID velocity ctrl
     └── TB6612FNG driver     └── TB6612FNG driver
-
+```
 
 # Implementation Phases:
 
@@ -74,22 +76,16 @@ VM pin → LiPo positive (7.4V). GND → LiPo negative. VCC pin → 3.3V from ES
 ### Step 2.3 — TB6612FNG control pins to ESP32. 
 Use Dupont wires:
 
-TB6612FNGpin    ESP32GPIO      Function
----------------------------------------------------------
-PWMA            GPIO 14         Left motor speed
----------------------------------------------------------
-AIN1            GPIO 27         Left motor direction 1
----------------------------------------------------------
-AIN2            GPIO 26         Left motor direction 2
----------------------------------------------------------
-PWMB            GPIO 25         Right motor speed
----------------------------------------------------------
-BIN1            GPIO 33         Right motor direction 1
----------------------------------------------------------
-BIN2            GPIO 32         Right motor direction 2
----------------------------------------------------------
-STBY            3.3V            Enable the driver (pull high)
----------------------------------------------------------
+| TB6612FNGpin |  ESP32GPIO  |   Function                     |
+|--------------|-------------|--------------------------------|
+|   PWMA       |  GPIO 14    |   Left motor speed             |
+|   AIN1       |  GPIO 27    |   Left motor direction 1       |
+|   AIN2       |  GPIO 26    |   Left motor direction 2       |
+|   PWMB       |  GPIO 25    |   Right motor speed            |
+|   BIN1       |  GPIO 33    |   Right motor direction 1      |
+|   BIN2       |  GPIO 32    |   Right motor direction 2      |
+|   STBY       |    3.3V     |   Enable the driver (pull high)|
+
 
 ### Step 2.4 — Encoder wires to ESP32. 
 Each JGA25-370 encoder has 6 wires: VCC, GND, A, B (+ sometimes index). Connect:
@@ -103,7 +99,8 @@ VCC → 3.3V, GND → GND, SDA → GPIO 21, SCL → GPIO 22
 
 ### Step 2.6 — Power the RPi4. 
 Buck converter input → LiPo (7.4V). 
-Buck converter output (USB-C 5V) → RPi4 USB-C port. The buck converter regulates the LiPo voltage to a stable 5V for the RPi4.
+Buck converter output (USB-C 5V) → RPi4 USB-C port. 
+The buck converter regulates the LiPo voltage to a stable 5V for the RPi4.
 
 ### Step 2.7 — ESP32 to RPi4 via USB cable: 
 ESP32 USB-C/micro → any RPi4 USB-A port. 
@@ -123,25 +120,26 @@ Download from arduino.cc.
 In Arduino IDE: File → Preferences → Additional Boards Manager URLs → paste https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json. Then Tools → Board → Boards Manager → search ESP32 → Install.
 
 ### Step 3.3 — Clone linorobot2_hardware. On your host PC terminal:
-> git clone https://github.com/linorobot/linorobot2_hardware
+`git clone https://github.com/linorobot/linorobot2_hardware`
 
 ### Step 3.4 — Install micro-ROS Arduino library. 
 Follow the instructions in the linorobot2_hardware README: download the micro-ROS library for Arduino from the releases page and add it via Arduino IDE → Sketch → Include Library → Add .ZIP Library.
 
 ### Step 3.5 — Configure the firmware. 
-Open <linorobot2_hardware/firmware/lib/config/lino_base_config.h> and set:
-> #define LINO_BASE DIFFERENTIAL_DRIVE
-> #define USE_TB6612_MOTOR_DRIVER
-> #define USE_MPU6050_IMU
-> // Set your encoder CPR and wheel diameter here
-> #define COUNTS_PER_REV 44   // 11 CPR × 4 (quadrature)
-> #define WHEEL_DIAMETER 0.065  // meters
-> #define WHEEL_SEPARATION 0.17  // meters (measure on your chassis)>
+Open `linorobot2_hardware/firmware/lib/config/lino_base_config.h` and set:
+ `#define LINO_BASE DIFFERENTIAL_DRIVE`
+ `#define USE_TB6612_MOTOR_DRIVER`
+ `#define USE_MPU6050_IMU`
+ `// Set your encoder CPR and wheel diameter here`
+`#define COUNTS_PER_REV 44   // 11 CPR × 4 (quadrature)`
+`#define WHEEL_DIAMETER 0.065  // meters`
+`#define WHEEL_SEPARATION 0.17  // meters (measure on your chassis)`
 
 ### Step 3.6 — Set GPIO pin numbers in the motor driver config to match your wiring from Step 2.3 and 2.4.
 
 ### Step 3.7 — Flash the firmware. 
-Connect ESP32 to your host PC via USB. In Arduino IDE: select board "ESP32 Dev Module", select the correct COM port, click Upload. 
+Connect ESP32 to your host PC via USB. 
+In Arduino IDE: select board **ESP32 Dev Module**, select the correct COM port, click Upload. 
 The ESP32 now runs micro-ROS and waits for a ROS2 micro-ROS agent on the RPi4.
 
 
@@ -151,38 +149,48 @@ The ESP32 now runs micro-ROS and waits for a ROS2 micro-ROS agent on the RPi4.
 On your host PC, download the Raspberry Pi Imager from raspberrypi.com. 
 Insert the microSD card. 
 Choose OS → Other general-purpose OS → Ubuntu → Ubuntu Server 22.04 LTS (64-bit). 
-Before writing, click the gear icon and set: hostname = robot1, enable SSH, set WiFi SSID and password, set username = pi, password of your choice. 
+Before writing, click the gear icon and set: `hostname = robot1`, enable SSH, set WiFi SSID and password, set `username = pi`, password of your choice. 
 Write to SD card. Insert SD into RPi4 and power on.
 
 ### Step 4.2 — SSH into the RPi4. 
 From your host PC:
-> ssh pi@robot1.local
+```bash
+ssh pi@robot1.local
+```
 Wait ~2 minutes for first boot. If robot1.local does not resolve, find the IP in your router's DHCP list.
 
-### Step 4.3 — Install ROS2 Humble. On the RPi4 via SSH:
-<sudo apt update && sudo apt upgrade -y>
-<sudo apt install software-properties-common curl -y>
-<sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key \
-  -o /usr/share/keyrings/ros-archive-keyring.gpg>
-<echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] \
+### Step 4.3 — Install ROS2 Humble. 
+On the RPi4 via SSH:
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install software-properties-common curl -y
+sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key \
+  -o /usr/share/keyrings/ros-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] \
   http://packages.ros.org/ros2/ubuntu jammy main" \
-  | sudo tee /etc/apt/sources.list.d/ros2.list>
-<sudo apt update>
-<sudo apt install ros-humble-ros-base -y>
-<echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc>
-<source ~/.bashrc>
+  | sudo tee /etc/apt/sources.list.d/ros2.list
+sudo apt update
+sudo apt install ros-humble-ros-base -y
+echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+source ~/.bashrc
+```
 
 ### Step 4.4 — Install linorobot2 on the RPi4. 
 The project provides a one-line install script:
-<source /opt/ros/humble/setup.bash>
-<cd /tmp>
-<wget https://raw.githubusercontent.com/linorobot/linorobot2/humble/install_linorobot2.bash>
+```bash
+source /opt/ros/humble/setup.bash
+cd /tmp
+wget https://raw.githubusercontent.com/linorobot/linorobot2/humble/install_linorobot2.bash
+```
 # Clone missing packages
-<cd ~/linorobot2_ws/src>
-<git clone -b humble https://github.com/linorobot/linorobot2>
-<git clone -b humble https://github.com/micro-ROS/micro-ROS-Agent micro_ros_agent_pkg>
+```bash
+cd ~/linorobot2_ws/src
+git clone -b humble https://github.com/linorobot/linorobot2
+git clone -b humble https://github.com/micro-ROS/micro-ROS-Agent micro_ros_agent_pkg
+```
 # Install dependencies
-<cd ~/linorobot2_ws
+```bash
+cd ~/linorobot2_ws
 rosdep install --from-path src --ignore-src -y \
   --skip-keys microxrcedds_agent \
   --skip-keys micro_ros_agent \
@@ -193,28 +201,35 @@ rosdep install --from-path src --ignore-src -y \
   --skip-keys gazebo_ros_pkgs \
   --skip-keys gazebo_plugins \
   --skip-keys gazebo_dev>
+```
 # Build while skipping Gazebo
-<colcon build --packages-skip linorobot2_gazebo>
-bash install_linorobot2.bash 2wd
+```bash
+colcon build --packages-skip linorobot2_gazebo
+```
 This installs all dependencies and creates a ~/robot_ws workspace. It takes 10–20 minutes.
 
 ### Step 4.5 — Launch micro-ROS agent. 
 This creates the ROS2 bridge between the ESP32 (USB serial) and the RPi4:
-> source ~/robot_ws/install/setup.bash
-> ros2 run micro_ros_agent micro_ros_agent serial --dev /dev/ttyUSB0 -b 115200
+```bash
+source ~/robot_ws/install/setup.bash
+ros2 run micro_ros_agent micro_ros_agent serial --dev /dev/ttyUSB0 -b 115200
+```
 Plug the USB cable (ESP32 → RPi4) and you should see connection messages appear.
 
 ### Step 4.6 — Verify odometry. 
 In a second SSH terminal:
-> source ~/robot_ws/install/setup.bash
-> ros2 topic echo /odom
+```bash
+source ~/robot_ws/install/setup.bash
+ros2 topic echo /odom
+```
 Manually spin a wheel by hand — the odometry values should change.
 
 ### Step 4.7 — Test motor commands. 
 Send a velocity command:
-> ros2 topic pub /cmd_vel geometry_msgs/msg/Twist \
+```bash
+ ros2 topic pub /cmd_vel geometry_msgs/msg/Twist \
   "{linear: {x: 0.1}, angular: {z: 0.0}}" --once
-
+```
 👉The robot should move forward briefly.
 
 

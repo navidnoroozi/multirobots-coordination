@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Co-simulation data-flow animation</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;background:#fff;color:#1a1a1a;padding:24px;max-width:780px;margin:0 auto;}
+@media(prefers-color-scheme:dark){body{background:#1a1a18;color:#e8e6df;}}
+
+:root{--pu50:#EEEDFE;--pu200:#AFA9EC;--pu600:#534AB7;--pu800:#3C3489;
+      --te50:#E1F5EE;--te200:#5DCAA5;--te600:#0F6E56;--te800:#085041;
+      --co50:#FAECE7;--co200:#F0997B;--co600:#993C1D;--co800:#712B13;
+      --am50:#FAEEDA;--am200:#EF9F27;--am600:#854F0B;--am800:#633806;
+      --gy50:#F1EFE8;--gy200:#B4B2A9;--gy600:#5F5E5A;
+      --border:#e0ddd6;--surf:#f8f6f1;--txt:#1a1a1a;--txt2:#5a5855;}
+@media(prefers-color-scheme:dark){
+  :root{--pu50:#26215C;--pu200:#534AB7;--pu600:#AFA9EC;--pu800:#CECBF6;
+        --te50:#04342C;--te200:#0F6E56;--te600:#5DCAA5;--te800:#9FE1CB;
+        --co50:#4A1B0C;--co200:#993C1D;--co600:#F0997B;--co800:#F5C4B3;
+        --am50:#412402;--am200:#854F0B;--am600:#EF9F27;--am800:#FAC775;
+        --gy50:#2C2C2A;--gy200:#5F5E5A;--gy600:#B4B2A9;
+        --border:#3a3835;--surf:#242420;--txt:#e8e6df;--txt2:#9a9890;}}
+
+h1{font-size:17px;font-weight:500;margin-bottom:4px;color:var(--txt);}
+.subtitle{font-size:13px;color:var(--txt2);margin-bottom:18px;}
+
+@keyframes moveDown{0%{transform:translateY(0);opacity:0}15%{opacity:1}85%{opacity:1}100%{transform:translateY(var(--dy,60px));opacity:0}}
+@keyframes moveUp{0%{transform:translateY(0);opacity:0}15%{opacity:1}85%{opacity:1}100%{transform:translateY(var(--dy,-60px));opacity:0}}
+
+.pkt{position:absolute;display:flex;align-items:center;gap:4px;padding:3px 8px;border-radius:10px;font-size:11px;font-weight:500;white-space:nowrap;pointer-events:none;z-index:10;}
+.pkt.down{animation:moveDown 1.2s ease-in-out forwards}
+.pkt.up{animation:moveUp 1.2s ease-in-out forwards}
+
+.tier{border-radius:10px;padding:10px 14px;margin-bottom:10px;position:relative;overflow:visible;border:1.5px solid;}
+.tier-label{font-size:11px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px;opacity:.7;}
+.boxes{display:flex;gap:8px;flex-wrap:wrap;}
+.box{border-radius:6px;padding:6px 10px;font-size:12px;font-weight:500;border:1px solid;flex:1;min-width:80px;text-align:center;transition:box-shadow .3s,opacity .3s;}
+
+.step-row{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap;}
+.step-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;border:1.5px solid;cursor:pointer;transition:all .2s;flex-shrink:0;background:var(--pu50);border-color:var(--pu200);color:var(--pu800);}
+.step-dot.active{transform:scale(1.15);}
+
+.seq-desc{font-size:12px;line-height:1.6;color:var(--txt2);margin-top:10px;min-height:44px;padding:10px 12px;border-radius:8px;background:var(--surf);border:0.5px solid var(--border);transition:opacity .3s;}
+
+.ctrl{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
+button{cursor:pointer;font-size:12px;padding:5px 14px;border-radius:6px;border:1px solid var(--border);background:#fff;color:var(--txt);transition:background .15s;}
+@media(prefers-color-scheme:dark){button{background:var(--surf);}}
+button:hover{background:var(--surf);}
+button.primary{background:var(--pu50);border-color:var(--pu200);color:var(--pu800);}
+.speed-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--txt2);}
+input[type=range]{accent-color:var(--pu600);}
+
+.ch{height:24px;display:flex;align-items:center;justify-content:center;gap:40px;margin:-2px 0;}
+.ch span{font-size:10px;opacity:.6;}
+
+.leg{display:flex;gap:14px;margin-top:10px;flex-wrap:wrap;}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--txt2);}
+.leg-dot{width:10px;height:10px;border-radius:50%;}
+</style>
+</head>
+<body>
+
+<h1>Co-simulation data-flow</h1>
+<p class="subtitle">Python ↔ MATLAB/Simulink ↔ distributed hybrid MPC formation control</p>
+
+<div class="ctrl">
+  <button class="primary" id="btnPlay" onclick="togglePlay()">▶ Play</button>
+  <button onclick="prevStep()">← Prev</button>
+  <button onclick="nextStep()">Next →</button>
+  <div class="speed-row">Speed
+    <input type="range" id="spd" min="1" max="5" value="3" step="1" style="width:70px" oninput="setSpeed(this.value)">
+    <span id="spdLbl">×1</span>
+  </div>
+</div>
+
+<div style="position:relative;">
+
+<div class="tier" id="t1" style="background:var(--pu50);border-color:var(--pu200);">
+  <div class="tier-label" style="color:var(--pu800);">Tier 1 — Python planning layer</div>
+  <div class="boxes">
+    <div class="box" id="b-exp" style="background:var(--pu50);border-color:var(--pu200);color:var(--pu800);">experiment_runner</div>
+    <div class="box" id="b-coord" style="background:var(--pu50);border-color:var(--pu200);color:var(--pu800);">coordinator_node</div>
+    <div class="box" id="b-ctrl" style="background:var(--pu50);border-color:var(--pu200);color:var(--pu800);">controller_node ×4</div>
+    <div class="box" id="b-hyb" style="background:var(--pu50);border-color:var(--pu200);color:var(--pu800);">hybrid safety filter</div>
+  </div>
+</div>
+
+<div class="ch" id="ch12">
+  <span style="color:var(--pu600);">plant_step ↓</span>
+  <span style="color:var(--te600);">↑ r, v (odometry feedback)</span>
+</div>
+
+<div class="tier" id="t2" style="background:var(--co50);border-color:var(--co200);">
+  <div class="tier-label" style="color:var(--co800);">Tier 2 — Co-simulation bridge layer</div>
+  <div class="boxes">
+    <div class="box" id="b-mgr" style="background:var(--co50);border-color:var(--co200);color:var(--co800);">cosim_manager</div>
+    <div class="box" id="b-brg" style="background:var(--co50);border-color:var(--co200);color:var(--co800);">cosim_bridge</div>
+    <div class="box" id="b-log" style="background:var(--co50);border-color:var(--co200);color:var(--co800);">cosim_logger</div>
+    <div class="box" id="b-cfg" style="background:var(--co50);border-color:var(--co200);color:var(--co800);">cosim_config</div>
+  </div>
+</div>
+
+<div class="ch" id="ch23">
+  <span style="color:var(--co600);">u_ref_i ↓ (matlab.engine)</span>
+  <span style="color:var(--te600);">↑ odo_i (workspace read)</span>
+</div>
+
+<div class="tier" id="t3" style="background:var(--am50);border-color:var(--am200);">
+  <div class="tier-label" style="color:var(--am800);">Tier 3 — MATLAB engine API</div>
+  <div class="boxes">
+    <div class="box" id="b-eng" style="background:var(--am50);border-color:var(--am200);color:var(--am800);">matlab.engine session</div>
+    <div class="box" id="b-ws" style="background:var(--am50);border-color:var(--am200);color:var(--am800);">MATLAB workspace</div>
+    <div class="box" id="b-cs" style="background:var(--am50);border-color:var(--am200);color:var(--am800);">cosim_step.m</div>
+  </div>
+</div>
+
+<div class="ch" id="ch34">
+  <span style="color:var(--am600);">stepForward cmd ↓</span>
+  <span style="color:var(--te600);">↑ odo array (To Workspace)</span>
+</div>
+
+<div class="tier" id="t4" style="background:var(--te50);border-color:var(--te200);">
+  <div class="tier-label" style="color:var(--te800);">Tier 4 — Simulink (unicycle_cosim.slx)</div>
+  <div class="boxes">
+    <div class="box" id="b-fw" style="background:var(--te50);border-color:var(--te200);color:var(--te800);">from workspace</div>
+    <div class="box" id="b-mc" style="background:var(--te50);border-color:var(--te200);color:var(--te800);">motion controller</div>
+    <div class="box" id="b-ud" style="background:var(--te50);border-color:var(--te200);color:var(--te800);">unicycle dynamics</div>
+    <div class="box" id="b-tw" style="background:var(--te50);border-color:var(--te200);color:var(--te800);">to workspace</div>
+  </div>
+</div>
+
+<div id="pkt-container" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;"></div>
+</div>
+
+<div class="step-row" id="stepRow"></div>
+<div class="seq-desc" id="seqDesc"></div>
+
+<div class="leg">
+  <div class="leg-item"><div class="leg-dot" style="background:var(--pu200)"></div>planning data</div>
+  <div class="leg-item"><div class="leg-dot" style="background:var(--co200)"></div>bridge / manager</div>
+  <div class="leg-item"><div class="leg-dot" style="background:var(--am200)"></div>MATLAB engine call</div>
+  <div class="leg-item"><div class="leg-dot" style="background:var(--te200)"></div>Simulink / odometry</div>
+  <div class="leg-item"><div class="leg-dot" style="background:var(--gy200)"></div>CSV log</div>
+</div>
+
+<script>
+const STEPS=[
+  {id:0,label:"1",active:["b-exp","b-coord"],pkt:{text:"plant_step {r, v}",color:"var(--pu600)",bg:"var(--pu50)",dir:"down",from:"t1",to:"t2"},desc:"experiment_runner launches all nodes. cosim_manager sends a plant_step message carrying the current positions r and velocities v to the coordinator over ZMQ REQ/REP."},
+  {id:1,label:"2",active:["b-coord","b-ctrl"],pkt:{text:"U_seq (MPC)",color:"var(--pu600)",bg:"var(--pu50)",dir:"down",from:"t1",to:"t2"},desc:"coordinator_node forwards state to all four controller_nodes. Each solves its local distributed MPC OCP and returns a nominal input sequence U_seq. Coordinator assembles the full (M × N × dim) array."},
+  {id:2,label:"3",active:["b-hyb","b-mgr"],pkt:{text:"hybrid_request",color:"var(--pu600)",bg:"var(--pu50)",dir:"down",from:"t1",to:"t2"},desc:"For each inner step t=0…M−1, cosim_manager calls the hybrid safety filter via hybrid_request ZMQ. The filter applies the explicit supervisor (modes F/C/O/CO/T) and returns u_safe clipped to the safety envelope."},
+  {id:3,label:"4",active:["b-mgr","b-brg","b-log"],pkt:{text:"u_safe → CSV log",color:"var(--gy600)",bg:"var(--gy50)",dir:null},desc:"cosim_manager passes u_safe_all to cosim_bridge.step() and simultaneously writes planning.csv and hybrid_modes.csv rows via cosim_logger — one row per (outer_j, inner_t, agent)."},
+  {id:4,label:"5",active:["b-brg","b-eng","b-ws"],pkt:{text:"u_ref_i = [ux,uy]",color:"var(--am800)",bg:"var(--am50)",dir:"down",from:"t2",to:"t3"},desc:"cosim_bridge writes u_ref_1 … u_ref_4 into the MATLAB base workspace using matlab.engine's workspace dict. These are Constant block values injected into the Simulink model before each step."},
+  {id:5,label:"6",active:["b-eng","b-cs","b-ws"],pkt:{text:"cosim_step()",color:"var(--am800)",bg:"var(--am50)",dir:"down",from:"t3",to:"t4"},desc:"cosim_bridge calls eng.cosim_step() via matlab.engine. cosim_step.m reads u_ref_i, injects values into Constant blocks via set_param(), then issues stepForward exactly n_steps times (count-based, no SimulationTime polling)."},
+  {id:6,label:"7",active:["b-fw","b-mc","b-ud","b-tw"],pkt:{text:"v, ω → integrate",color:"var(--te800)",bg:"var(--te50)",dir:null},desc:"Inside Simulink: From Workspace reads [u_x, u_y]. Motion Controller computes v_ref = ‖u‖, θ_ref = atan2(u_y, u_x), then ω = k·e_θ and speed shaping. Unicycle Dynamics integrates ẋ=v·cosθ, ẏ=v·sinθ, θ̇=ω via ODE1."},
+  {id:7,label:"8",active:["b-tw","b-ws","b-cs"],pkt:{text:"odo_i = [x,y,θ,v,ω]",color:"var(--te800)",bg:"var(--te50)",dir:"up",from:"t4",to:"t3"},desc:"To Workspace blocks write odo_1 … odo_4 arrays (SaveFormat=Array) into the MATLAB base workspace after each stepForward. cosim_step.m reads the last row from each odo variable and returns the (N×5) matrix."},
+  {id:8,label:"9",active:["b-brg","b-mgr"],pkt:{text:"OdometryBundle",color:"var(--co800)",bg:"var(--co50)",dir:"up",from:"t3",to:"t2"},desc:"cosim_bridge.step() converts the (N×5) MATLAB matrix into an OdometryBundle (positions, headings, linear_speeds, angular_rates). This is returned to cosim_manager."},
+  {id:9,label:"10",active:["b-mgr","b-log"],pkt:{text:"→ odometry.csv",color:"var(--gy600)",bg:"var(--gy50)",dir:null},desc:"cosim_manager updates r = bundle.positions and logs odometry.csv: each row has odo_x/y/θ/v/ω plus err_pos = ‖bundle.positions − r_pred‖ — the unicycle tracking error vs the single-integrator prediction."},
+  {id:10,label:"11",active:["b-mgr","b-coord"],pkt:{text:"r, v (feedback)",color:"var(--te600)",bg:"var(--te50)",dir:"up",from:"t2",to:"t1"},desc:"The Simulink odometry positions replace the planning layer's r array (closed-loop feedback). At the next outer step, the coordinator receives the true unicycle positions — not the ideal single-integrator prediction."},
+  {id:11,label:"12",active:["b-log"],pkt:{text:"health.csv flush",color:"var(--gy600)",bg:"var(--gy50)",dir:null},desc:"After all M inner steps, cosim_manager logs one health.csv row: Vr, dmin_agents, dmin_obs, mode counts, odo_max_err, matlab_step_ms. All CSV files are flushed every log_flush_every outer steps."},
+];
+
+let cur=0,playing=false,timer=null,speed=3;
+const speeds=[null,2400,1700,1100,700,400];
+
+function clearActive(){
+  ["b-exp","b-coord","b-ctrl","b-hyb","b-mgr","b-brg","b-log","b-cfg",
+   "b-eng","b-ws","b-cs","b-fw","b-mc","b-ud","b-tw"].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){el.style.boxShadow="";}
+  });
+}
+
+function applyStep(i){
+  clearActive();
+  const s=STEPS[i];
+  s.active.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.style.boxShadow="0 0 0 2.5px currentColor";
+  });
+  document.getElementById("seqDesc").textContent=s.desc;
+  document.querySelectorAll(".step-dot").forEach((d,idx)=>{
+    d.classList.toggle("active",idx===i);
+    d.style.opacity=idx===i?"1":"0.5";
+  });
+  if(s.pkt&&s.pkt.dir)spawnPacket(s.pkt,i);
+}
+
+function getFromRect(tier){
+  const el=document.getElementById(tier);
+  const cont=document.getElementById("pkt-container");
+  if(!el||!cont)return{x:200,y:200};
+  const er=el.getBoundingClientRect();
+  const cr=cont.getBoundingClientRect();
+  return{x:er.left-cr.left+er.width/2,y:er.top-cr.top+er.height/2};
+}
+
+function spawnPacket(pkt,stepIdx){
+  const cont=document.getElementById("pkt-container");
+  cont.querySelectorAll(".pkt").forEach(p=>{if(p.dataset.step!==String(stepIdx))p.remove();});
+  const fromR=getFromRect(pkt.from||"t1");
+  const toR=getFromRect(pkt.to||"t2");
+  const el=document.createElement("div");
+  el.className="pkt "+(pkt.dir==="down"?"down":"up");
+  el.dataset.step=stepIdx;
+  el.style.cssText=`background:${pkt.bg};color:${pkt.color};border:1px solid ${pkt.color};left:${fromR.x-50}px;top:${fromR.y}px;`;
+  el.style.setProperty("--dy",(toR.y-fromR.y)+"px");
+  el.textContent=pkt.text;
+  cont.appendChild(el);
+  setTimeout(()=>{if(el.parentNode)el.remove();},1400);
+}
+
+function buildStepDots(){
+  const row=document.getElementById("stepRow");
+  row.innerHTML="";
+  STEPS.forEach((s,i)=>{
+    const d=document.createElement("div");
+    d.className="step-dot";
+    d.textContent=s.label;
+    d.title="Step "+s.label;
+    d.onclick=()=>{stopPlay();cur=i;applyStep(i);};
+    row.appendChild(d);
+    if(i<STEPS.length-1){
+      const arr=document.createElement("div");
+      arr.style.cssText="font-size:9px;color:var(--txt2);flex-shrink:0;";
+      arr.textContent="›";
+      row.appendChild(arr);
+    }
+  });
+}
+
+function nextStep(){stopPlay();cur=(cur+1)%STEPS.length;applyStep(cur);}
+function prevStep(){stopPlay();cur=(cur-1+STEPS.length)%STEPS.length;applyStep(cur);}
+function togglePlay(){playing?stopPlay():startPlay();}
+function startPlay(){playing=true;document.getElementById("btnPlay").textContent="⏸ Pause";advance();}
+function stopPlay(){playing=false;clearTimeout(timer);document.getElementById("btnPlay").textContent="▶ Play";}
+function advance(){if(!playing)return;cur=(cur+1)%STEPS.length;applyStep(cur);timer=setTimeout(advance,speeds[speed]||1100);}
+function setSpeed(v){speed=parseInt(v);const l=["","×0.5","×0.7","×1","×1.5","×2.5"];document.getElementById("spdLbl").textContent=l[speed]||"×1";}
+
+buildStepDots();
+applyStep(0);
+</script>
+</body>
+</html>

@@ -84,6 +84,11 @@ class PlannerNode(Node):
 
         # ── Publisher: send velocity commands → motion controller ───────────
         #
+        # create_publisher(topic_type, topic_name, qos_history_depth)
+        # - topic_type: the ROS2 message type (here, geometry_msgs/Twist)
+        # - topic_name: the name of the topic to publish to (here, 'cmd_vel')
+        # - qos_history_depth: how many messages to buffer if the subscriber is
+        #   not keeping up (10 is a common choice for control topics)
         # Topic name:  'cmd_vel'
         # Message type: geometry_msgs/Twist
         #   msg.linear.x   = forward speed v     [m/s]
@@ -98,6 +103,22 @@ class PlannerNode(Node):
         # The callback_group=self._cb_group argument opts this subscriber into
         # concurrent execution.  Without it, ROS2 would serialise all callbacks
         # in the default MutuallyExclusiveCallbackGroup.
+        # create_subscription(topic_type, topic_name, callback, qos_history_depth, callback_group)
+        # - topic_type: the ROS2 message type (here, nav_msgs/Odometry)
+        # - topic_name: the name of the topic to subscribe to (here, 'odom')
+        # - callback: the function to call when a new message arrives (here, self._odom_callback)
+        # - qos_history_depth: how many messages to buffer if the publisher is
+        #   sending faster than we can process (10 is a common choice for control topics)
+        # - callback_group: which callback group to assign this subscriber to (here, self._cb_group for concurrent execution)
+        # Topic name:  'odom'
+        # Message type: nav_msgs/Odometry
+        #  msg.pose.pose.position.{x,y}  = position (x, y) [m]
+        #  msg.pose.pose.orientation.{z,w} = heading θ encoded as quaternion
+        #  msg.twist.twist.linear.x       = forward velocity v [m/s]
+        #  msg.twist.twist.angular.z      = yaw rate ω [rad/s]
+        # The motion controller publishes odometry at a high rate (e.g. 50 Hz) to provide
+        # timely feedback for the MPC controller.  
+        # The planner runs at a lower rate (e.g. 5 Hz) to generate commands, so we use a QoS history depth of 10 to buffer the latest messages.
         self.odom_sub = self.create_subscription(
             Odometry,
             'odom',
@@ -256,6 +277,12 @@ def main(args=None) -> None:
     node = PlannerNode()
 
     # MultiThreadedExecutor: spawns a thread pool, dispatches callbacks
+    # to available threads, allowing concurrent execution of callbacks.
+    # num_threads=4 is a common choice for a simple node with a few callbacks, but you can adjust based on your workload.
+    # 4 threads means that up to 4 callbacks can run simultaneously.  In this node we have:
+    # - 1 planning timer callback (every 0.2 s)
+    # - 1 odom subscriber callback (up to 50 Hz)
+    # - 1 diagnostics subscriber callback (up to 10 Hz)
     executor = MultiThreadedExecutor(num_threads=4)
     executor.add_node(node)
 

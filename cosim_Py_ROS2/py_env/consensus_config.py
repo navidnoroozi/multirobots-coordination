@@ -40,7 +40,7 @@ class NetConfig:
     model: ModelType = "single_integrator"
 
     # --- DMPC ---
-    outer_steps: int = 100
+    outer_steps: int = 300
     auto_M: bool = True
     M_manual: int = 3
     alpha_gamma: float = 0.9
@@ -111,7 +111,7 @@ class NetConfig:
     safety_enabled: bool = True
     safety_method: str = "explicit_hybrid"
 
-    dt: float = 0.07
+    dt: float = 0.05
 
     # local safety graph / local sensing radii
     safety_warning_radius: float = (

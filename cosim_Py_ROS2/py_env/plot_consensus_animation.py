@@ -21,15 +21,13 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Animate agent motion together with the hybrid-mode state machine."
     )
-    parser.add_argument("--traj-csv", type=str, default="planning.csv")
+    parser.add_argument("--traj-csv", type=str, default="unicycle_state.csv")
     parser.add_argument("--metrics-csv", type=str, default="consensus_metrics.csv")
     parser.add_argument("--hybrid-modes-csv", type=str, default="hybrid_modes.csv")
     parser.add_argument(
         "--save-gif",
-        type=str,
-        default=False,
-        required=True,
-        help="Whether to export a GIF of the animation instead of showing an interactive window. If set, the output path can be configured via --gif-path. Note: the GIF export is designed for clean appearance and does not include the interactive UI elements.",
+        action="store_true",
+        help="Whether to export a GIF of the animation instead of showing an interactive window...",
     )
     parser.add_argument(
         "--gif-path", type=str, default="consensus_animation_with_state_machine.gif"
@@ -53,7 +51,7 @@ def _load_traj(path: Path):
     agent = data[:, 3].astype(int)
     r0, r1 = data[:, 4], data[:, 5]
     v0, v1 = data[:, 6], data[:, 7]
-    u0, u1 = data[:, 8], data[:, 9]
+    u0, u1 = data[:, 9], data[:, 10]
 
     agents = np.unique(agent).astype(int)
     n = len(agents)
@@ -465,7 +463,7 @@ def main() -> None:
         fps["val"] = float(np.clip(new_fps, 0.1, 10.0))
 
     def _heading_vec(ti: int, i: int) -> np.ndarray:
-        h = vel[ti, i, :] if is_double else u[ti, i, :]
+        h = u[ti, i, :]
         nrm = float(np.linalg.norm(h))
         if nrm < 1e-9:
             return np.array([1.0, 0.0])

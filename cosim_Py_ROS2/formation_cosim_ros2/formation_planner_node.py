@@ -177,16 +177,17 @@ class FormationPlannerNode(Node):
         super().__init__('formation_planner')
 
         # ── Declare ROS2 parameters ────────────────────────────────────────
-        self.declare_parameter('n_agents',         4)
-        self.declare_parameter('model',            'single_integrator')
-        self.declare_parameter('outer_steps',      18)
-        self.declare_parameter('safety_enabled',   True)
+        self.declare_parameter('n_agents',          4)
+        self.declare_parameter('model',             'single_integrator')
+        self.declare_parameter('outer_steps',       18)
+        self.declare_parameter('safety_enabled',    True)
         self.declare_parameter('obstacles_enabled', True)
-        self.declare_parameter('dt_inner',         1.0)
-        self.declare_parameter('k_heading',        4.0)
-        self.declare_parameter('k_speed',          1.0)
-        self.declare_parameter('log_dir',          'ros2_cosim_logs')
-        self.declare_parameter('startup_delay_s',  2.0)
+        # k_heading = 0.0 means AUTO: compute deadbeat gain = 1/cfg.dt after cfg loads.
+        # Any positive value overrides.  Default 0.0 (auto) is strongly recommended.
+        self.declare_parameter('k_heading',         0.0)
+        self.declare_parameter('k_speed',           1.0)
+        self.declare_parameter('log_dir',           'ros2_cosim_logs')
+        self.declare_parameter('startup_delay_s',   2.0)
 
         n_agents    = self.get_parameter('n_agents').value
         model       = self.get_parameter('model').value
@@ -196,9 +197,8 @@ class FormationPlannerNode(Node):
         log_dir     = self.get_parameter('log_dir').value
         startup_s   = self.get_parameter('startup_delay_s').value
 
-        self._dt_inner  = self.get_parameter('dt_inner').value
-        self._k_heading = self.get_parameter('k_heading').value
-        self._k_speed   = self.get_parameter('k_speed').value
+        self._k_heading_param = self.get_parameter('k_heading').value
+        self._k_speed         = self.get_parameter('k_speed').value
 
         # ── Build NetConfig from parameters ───────────────────────────────
         # NetConfig is frozen so we reconstruct it from the default with overrides.
@@ -215,10 +215,38 @@ class FormationPlannerNode(Node):
         self._M = self._cfg.horizon_M()
         self._n = n_agents
 
+        # dt_inner is ALWAYS cfg.dt (the MPC integration step).
+        self._dt_inner = self._cfg.dt
+
+        # DEADBEAT HEADING GAIN
+        # ─────────────────────
+        # The event-driven fleet executes EXACTLY ONE Euler step per cmd_vel.
+        # For the unicycle to track the single-integrator model, the heading
+        # must align in that ONE step.  The discrete heading controller is:
+        #
+        #     θ(k+1) = θ(k) + k_heading · e_θ · dt
+        #
+        # Setting k_heading · dt = 1 gives θ(k+1) = θ_ref in one step
+        # (deadbeat control, pole = 0).  After alignment, v = ||u||
+        # and position tracks the SI model exactly on every subsequent step.
+        #
+        # With k_heading = 4.0 (old default) and dt = 0.07 s:
+        #   pole = 1 − 4.0·0.07 = 0.72  →  10 steps to converge → instability
+        # With k_heading = 1/dt ≈ 14.3 and dt = 0.07 s:
+        #   pole = 0  →  one-step convergence → stable SI tracking
+        if self._k_heading_param <= 0.0:
+            # Auto mode: deadbeat gain = 1/cfg.dt
+            self._k_heading = 1.0 / self._cfg.dt
+        else:
+            # Manual override (advanced use — must satisfy k_heading·dt ≤ 1
+            # for non-oscillatory response; ≤ 2 for stability)
+            self._k_heading = self._k_heading_param
+
         self.get_logger().info(
             f'FormationPlannerNode: n={self._n} | model={model} | '
             f'M={self._M} | outer_steps={outer_steps} | '
-            f'safety={safety_en} | obstacles={obs_en} | dt_inner={self._dt_inner}s'
+            f'safety={safety_en} | obstacles={obs_en} | '
+            f'dt_inner=cfg.dt={self._dt_inner:.4f}s'
         )
 
         # ── Thread-safe odom state ─────────────────────────────────────────
@@ -576,6 +604,10 @@ class FormationPlannerNode(Node):
                 circle_total    = 0
 
                 # ── 4a. Hybrid safety filter + Twist publish ───────────────
+                # cmd_log stores (v_cmd, omega_cmd, u_safe) per agent so we
+                # can log unicycle state AFTER the sleep (FIX 3).
+                cmd_log: Dict[int, tuple] = {}
+
                 for i in range(1, self._n + 1):
                     bary_i = _get_keyed(bary_dict, i, [r[i-1, 0], r[i-1, 1]])
                     if not (isinstance(bary_i, (list, tuple)) and len(bary_i) >= 2):
@@ -592,8 +624,8 @@ class FormationPlannerNode(Node):
                     )
 
                     # Publish Twist to /robot_i/cmd_vel
-                    twist_msg          = Twist()
-                    twist_msg.linear.x = v_cmd
+                    twist_msg           = Twist()
+                    twist_msg.linear.x  = v_cmd
                     twist_msg.angular.z = omega_cmd
                     self._cmd_vel_pubs[i].publish(twist_msg)
 
@@ -603,22 +635,15 @@ class FormationPlannerNode(Node):
                     h_pair_total += int(mode_diag.get("_h_pair_num", 0))
                     circle_total += int(mode_diag.get("_circle_barrier_num", 0))
 
-                    # ── CSV: hybrid mode ───────────────────────────────────
+                    # CSV: hybrid mode (logged now — records the mode decision)
                     self._csv.log_hybrid_mode(k_global, outer_j, inner_t, i, mode_diag)
 
-                    # ── CSV: unicycle state ────────────────────────────────
-                    with self._odom_lock:
-                        s = self._odom_state[i]
-                    self._csv.log_unicycle(
-                        k_global, outer_j, inner_t, i,
-                        s['x'], s['y'], s['theta'],
-                        v_cmd, omega_cmd,
-                        float(u_safe_i[0]), float(u_safe_i[1]),
-                    )
+                    # Store commands for post-sleep unicycle logging (FIX 3)
+                    cmd_log[i] = (v_cmd, omega_cmd, u_safe_i)
 
-                # ── 4b. Zero-order hold: wait dt_inner for the fleet ──────
-                # During this sleep the MultiThreadedExecutor continues
-                # dispatching odom callbacks, keeping _odom_state current.
+                # ── 4b. Zero-order hold: wait cfg.dt for the fleet ────────
+                # During this sleep the MultiThreadedExecutor dispatches odom
+                # callbacks, keeping _odom_state current.
                 time.sleep(self._dt_inner)
 
                 # ── 4c. Read updated robot positions after integration ─────
@@ -636,12 +661,23 @@ class FormationPlannerNode(Node):
                 dmin_agents    = _pairwise_min_distance(r)
                 dmin_obstacles = _global_obstacle_distance(cfg, r)
 
-                # ── 4f. CSV: trajectory ────────────────────────────────────
+                # ── 4f. CSV: trajectory + unicycle state (both AFTER sleep) ─
+                # FIX 3: unicycle_state was logged BEFORE sleep, causing x_m/y_m
+                # to be one inner step ahead of r0/r1 in consensus_traj.csv.
+                # Both are now logged after _read_odom() so they record the same
+                # post-integration position.
                 for i in range(self._n):
                     vi_log = [v[i, 0], v[i, 1]] if cfg.model == 'double_integrator' else [0.0, 0.0]
                     self._csv.log_trajectory(
                         k_global, outer_j, inner_t, i + 1,
                         [r[i, 0], r[i, 1]], vi_log, [u[i, 0], u[i, 1]],
+                    )
+                    v_cmd_i, omega_cmd_i, u_safe_i = cmd_log[i + 1]
+                    self._csv.log_unicycle(
+                        k_global, outer_j, inner_t, i + 1,
+                        r[i, 0], r[i, 1], theta[i],      # post-integration pose
+                        v_cmd_i, omega_cmd_i,
+                        float(u_safe_i[0]), float(u_safe_i[1]),
                     )
 
                 # ── 4g. CSV: metrics ───────────────────────────────────────

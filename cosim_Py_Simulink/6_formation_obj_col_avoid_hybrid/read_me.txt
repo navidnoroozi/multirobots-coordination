@@ -13,6 +13,8 @@ python cosim_experiment_runner.py --n-agents 4 --model single_integrator --outer
 - Solo Planning
 python cosim_experiment_runner.py --n-agents 4 --model single_integrator --outer-steps 500 --cosim-mode dry-run
 
+- Animation:
+python plot_consensus_animation.py --save-gif --gif-speed 2.5
 
 OPTION 2 - ONLY PYTHON:
 HOW TO RUN THE PYTHON ENVIROMENT:

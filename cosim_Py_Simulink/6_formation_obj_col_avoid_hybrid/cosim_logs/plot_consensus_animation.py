@@ -26,10 +26,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--hybrid-modes-csv", type=str, default="hybrid_modes.csv")
     parser.add_argument(
         "--save-gif",
-        type=str,
-        default=False,
-        required=True,
-        help="Whether to export a GIF of the animation instead of showing an interactive window. If set, the output path can be configured via --gif-path. Note: the GIF export is designed for clean appearance and does not include the interactive UI elements.",
+        action="store_true",
+        help="Whether to export a GIF of the animation instead of showing an interactive window...",
     )
     parser.add_argument(
         "--gif-path", type=str, default="consensus_animation_with_state_machine.gif"

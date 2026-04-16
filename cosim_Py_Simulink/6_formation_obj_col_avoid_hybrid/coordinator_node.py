@@ -2,12 +2,16 @@ from __future__ import annotations
 
 import argparse
 from typing import Any, Dict
+import logging
 
 import numpy as np
 import zmq
 
 from consensus_comm import dumps, loads, make_envelope
 from consensus_config import add_common_args, config_from_namespace
+
+
+logging.basicConfig(level=logging.INFO)
 
 
 def _make_req_socket(ctx: zmq.Context, endpoint: str, timeout_ms: int, linger_ms: int) -> zmq.Socket:
@@ -98,6 +102,8 @@ def main() -> None:
             }
             try:
                 req_socks[i].send(dumps(make_envelope("mpc_request", payload, src="coord", dst=f"ctrl{i}")))
+                logging.info(f"[Coordinator] Sent MPC request to controller_node{i} at t = {cfg.dt * outer_j}.")
+                logging.info(f"  payload: agent_id={payload['agent_id']}, r_i={payload['r_i']}, v_i={payload['v_i']}")
                 rep_i = loads(req_socks[i].recv())["payload"]
                 replies[i] = rep_i
             except zmq.Again:

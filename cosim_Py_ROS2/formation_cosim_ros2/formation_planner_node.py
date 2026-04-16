@@ -351,6 +351,17 @@ class FormationPlannerNode(Node):
                 self._odom_received[robot_id] = True
 
         return callback
+    
+    # ═══════════════════════════════════════════════════════════════════════
+    # Angle wrapping helper    # (identical to the same function in cosim_step.m and controller_node.py)
+    # ═══════════════════════════════════════════════════════════════════════
+    
+    def wrap_to_pi(self, angle):
+        """
+        Wraps an angle to the range [-pi, pi].
+        This ensures the robot always takes the shortest turning path.
+        """
+        return (angle + math.pi) % (2 * math.pi) - math.pi
 
     # ═══════════════════════════════════════════════════════════════════════
     # Unicycle heading controller
@@ -392,8 +403,15 @@ class FormationPlannerNode(Node):
             math.cos(theta_ref - theta),
         )
 
+        if abs(e_theta) > (math.pi / 2):
+            direction = -1.0
+            # Shift the error by 180 degrees so the robot points its rear at the target
+            e_theta = self.wrap_to_pi(e_theta - math.copysign(math.pi, e_theta))
+        else:
+            direction = 1.0
+
         omega = self._k_heading * e_theta
-        v     = self._k_speed * u_mag * max(math.cos(e_theta), 0.0)
+        v     = direction * self._k_speed * u_mag * math.cos(e_theta)
         return v, omega
 
     # ═══════════════════════════════════════════════════════════════════════

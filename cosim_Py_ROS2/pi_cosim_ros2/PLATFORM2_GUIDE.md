@@ -29,7 +29,16 @@ by a simulation on the same machine or a real robot across WiFi.
 
 ---
 
-## Part A — Network Setup (do this once)
+## Part A0 — Network Setup (do this once)
+
+### ssh into pi
+```bash
+ssh pi@192.168.178.61
+```
+OR
+```bash
+ssh pi@robot1.local
+```
 
 ### A.1 — Set the same ROS_DOMAIN_ID on all machines
 
